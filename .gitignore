@@ -1,0 +1,7 @@
+.vscode
+test.py
+test.*
+venv
+config.py
+cache
+log
