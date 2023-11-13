@@ -146,7 +146,7 @@ async def getDanaAPIKey(token):
     return response
 
 
-async def keyboardUpdate():
+async def defautlKeyboardUpdate():
     # keyboard_buttons = [
     # [KeyboardButton(NEW_CONV),KeyboardButton(SHOW_MODES)],
     # [KeyboardButton(SHOW_PACKAGES),KeyboardButton(SHOW_COINS)],
@@ -154,7 +154,7 @@ async def keyboardUpdate():
     # ]
     keyboard_buttons = [
         [KeyboardButton(NEW_AD)],
-        [KeyboardButton(SHOW_STATS)]
+        [KeyboardButton(SHOW_STATS)],
         [KeyboardButton(SHOW_PACKAGES), KeyboardButton(SHOW_COINS)],
         [KeyboardButton(SUPPORT_BUTTON)],
     ]
@@ -181,7 +181,7 @@ async def start(update, context):
         userAPIKey = clients.get_all_clients()
         print(userAPIKey)
         await context.bot.send_message(
-            chat_id=user_id, text=WELCOME, reply_markup=await keyboardUpdate()
+            chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
         )
 
         unique_identifier = context.args[0] if len(context.args) > 0 else None
@@ -207,7 +207,7 @@ async def start(update, context):
                 USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
             )
         await context.bot.send_message(
-            chat_id=user_id, text=WELCOME, reply_markup=await keyboardUpdate()
+            chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
         )
 
     if checkUserJoinedChannel == True:
@@ -677,7 +677,9 @@ async def getChatModes(update, context):
             chat_id=user_id, text=CHOOSE_MODE, reply_markup=reply_markup
         )
         await context.bot.send_message(
-            chat_id=user_id, text=CLICK_MODE_BUTTON, reply_markup=await keyboardUpdate()
+            chat_id=user_id,
+            text=CLICK_MODE_BUTTON,
+            reply_markup=await defautlKeyboardUpdate(),
         )
 
     else:
@@ -740,7 +742,7 @@ async def newChat(update, context):
 
     if response.status_code == 200:
         await context.bot.send_message(
-            chat_id=user_id, text=RESET_CHAT, reply_markup=await keyboardUpdate()
+            chat_id=user_id, text=RESET_CHAT, reply_markup=await defautlKeyboardUpdate()
         )
     else:
         await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
@@ -788,22 +790,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             " I will hold a more complex conversation with you. Why don't you tell me "
             "something about yourself?"
         )
-    await update.message.reply_text(reply_text, reply_markup=keyboardUpdate())
+    await update.message.reply_text(
+        reply_text, reply_markup=await defautlKeyboardUpdate()
+    )
 
     return CHOOSING
 
 
-async def regular_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask the user for info about the selected predefined choice."""
     text = update.message.text.lower()
     context.user_data["choice"] = text
-    if context.user_data.get(text):
-        reply_text = f"Your {text}? I already know the following about that: {context.user_data[text]}"
-    else:
-        reply_text = f"Your {text}? Yes, I would love to hear about that!"
+    if text == NEW_AD:
+        reply_text = SEND_IMAGE_OF_AD
     await update.message.reply_text(reply_text)
-
-    return TYPING_REPLY
+    return SEND_IMAGE
 
 
 async def custom_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -825,15 +826,47 @@ async def received_information(
         return
     context.user_data[choice] = text.lower()
     del context.user_data["choice"]
-    
+
     await update.message.reply_text(
         "Neat! Just so you know, this is what you already told me:"
         f"{facts_to_str(context.user_data)}"
         "You can tell me more, or change your opinion on something.",
-        reply_markup=keyboardUpdate(),
+        reply_markup=await defautlKeyboardUpdate(),
     )
 
     return CHOOSING
+
+
+async def receiveImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Get the photo file ID
+    photoId = update.message.photo[-1].file_id
+    # Store the photo file ID in user data
+    context.user_data["photo_id"] = photoId
+    keyboard_buttons = [[KeyboardButton(CANCEL)]]
+    reply_markup = ReplyKeyboardMarkup(
+        keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+    )
+    await update.message.reply_text(text=SEND_TEXT_OF_AD, reply_markup=reply_markup)
+    return SEND_TEXT
+
+
+async def receiveText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["ad_text"] = update.message.text
+    keyboard_buttons = [[KeyboardButton(CONFIRM)], [KeyboardButton(CANCEL)]]
+    reply_markup = ReplyKeyboardMarkup(
+        keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+    )
+    photo_id = context.user_data.get("photo_id")
+    if photo_id:
+        # Get the File object for the photo
+        file = context.bot.get_file(photo_id)
+        if file:
+            # Send the photo to the user
+            context.bot.send_photo(chat_id=update.effective_chat.id, photo=file, caption= context.user_data["ad_text"])
+    
+    await update.message.reply_text(text=AD_CONFIRMATION, reply_markup=reply_markup)
+
+    return CONFIRMATION
 
 
 async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -851,5 +884,17 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         f"I learned these facts about you: {facts_to_str(context.user_data)}Until next time!",
         reply_markup=ReplyKeyboardRemove(),
+    )
+    return ConversationHandler.END
+
+
+async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(text = AD_DONE, reply_markup= await defautlKeyboardUpdate())
+    
+
+
+async def cancelOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        text=CANCEL_MESSAGE, reply_markup=await defautlKeyboardUpdate()
     )
     return ConversationHandler.END

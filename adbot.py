@@ -59,30 +59,38 @@ def main():
         Application.builder().token(config.BOT_TOKEN).persistence(persistence).build()
     )
 
-    # Add conversation handler with the states CHOOSING, TYPING_CHOICE and TYPING_REPLY
+    # Add conversation handler with the states CHOOSING, CONFIRMATION and SEND_IMAGE
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", handler.start)],
         states={
             CHOOSING: [
+                MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice),
+            ],
+            SEND_IMAGE: [
                 MessageHandler(
-                    filters.Regex("^(Age|Favourite colour|Number of siblings)$"),
-                    handler.regular_choice,
+                    filters.Regex(r"" + CANCEL),
+                    handler.cancelOperation,
                 ),
                 MessageHandler(
-                    filters.Regex("^Something else...$"), handler.custom_choice
+                    filters.PHOTO & ~(filters.COMMAND | filters.Regex("^Done$")),
+                    handler.receiveImage,
                 ),
             ],
-            TYPING_CHOICE: [
+            SEND_TEXT: [
                 MessageHandler(
-                    filters.TEXT & ~(filters.COMMAND | filters.Regex("^Done$")),
-                    handler.regular_choice,
+                    filters.TEXT,
+                    handler.receivedText,
                 )
             ],
-            TYPING_REPLY: [
+            CONFIRMATION: [
                 MessageHandler(
-                    filters.TEXT & ~(filters.COMMAND | filters.Regex("^Done$")),
-                    handler.received_information,
-                )
+                    filters.Regex(r"" + CANCEL),
+                    handler.cancelOperation,
+                ),
+                MessageHandler(
+                    filters.Regex(r"" + CONFIRM),
+                    handler.confirmOperation,
+                ),
             ],
         },
         fallbacks=[MessageHandler(filters.Regex("^Done$"), handler.done)],
