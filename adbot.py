@@ -14,6 +14,7 @@ from telegram.ext import (
     MessageHandler,
     PicklePersistence,
     filters,
+    CallbackQueryHandler,
 )
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 
@@ -65,8 +66,17 @@ def main():
         states={
             CHOOSING: [
                 MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice),
-                CommandHandler("start", handler.start),
-
+                MessageHandler(filters.Regex(r"" + SHOW_PACKAGES), handler.adChoice),
+                MessageHandler(filters.Regex(r"" + SHOW_STATS), handler.adChoice),
+            ],
+            SELECT_PACKAGE: [
+                # CallbackQueryHandler(
+                #     handler.choosePackageToUse, pattern=f"^{PREFIX_PACKAGE_TO_USE}"
+                # ),
+                MessageHandler(
+                    filters.Regex(r"" + CANCEL),
+                    handler.cancelOperation,
+                ),
             ],
             SEND_IMAGE: [
                 MessageHandler(
@@ -99,8 +109,10 @@ def main():
         name="my_conversation",
         persistent=True,
     )
-
+    application.add_handler(MessageHandler(filters.Regex(r'/start'), handler.start))
     application.add_handler(conv_handler)
+    application.add_handler(MessageHandler(filters.Regex(r'' + BUY_PACKAGES), handler.getPackages))
+    application.add_handler(CallbackQueryHandler(handler.purchaseCoinHandler, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
     show_data_handler = CommandHandler("show_data", handler.show_data)
     application.add_handler(show_data_handler)
     # Run the bot until the user presses Ctrl-C

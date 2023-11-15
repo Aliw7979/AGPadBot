@@ -8,7 +8,7 @@ LIMIT_PACKAGE_DAYS = "{} روزه"
 DURATION = 'تا تاریخ {}/{}/{} و ساعت {}:{}:{}'
 WARN_ACTIVE_PACKAGE = '📌بسته دیگری برای شما فعال می‌باشد، برای خرید بسته جدید باید تا پایان بسته فعلی صبر کنید.'
 SERVICEDOWN = '''در حال حاضر سرویس در دسترس نمی‌باشد'''
-CHOOSE_PACKAGE = '''لطفا بسته مورد نظر خود را برای خرید سکه انتخاب کنید : '''
+CHOOSE_PACKAGE = '''لطفا بسته مورد نظر خود را برای خرید انتخاب کنید : '''
 PURCHASE_LINK = ''' لینک خرید سکه مورد نظر :'''
 INSUFFICIENT_COIN = '''❌شما سکه کافی ندارید❌'''
 TOO_MANY_REQ = '''تعداد درخواست های شما از حد مجاز گذشته است لطفا صبر کنید. با تشکر🙏'''
@@ -16,7 +16,7 @@ ENROLMENT = '''لطفا اول در کانال ما عضو شوید.'''
 ENROLMENT_BUTTON = '''عضویت در کانال ما'''
 INVITE_LINK_DESCRIPTION = '''لینک دعوت شما :'''
 CURRENCY = ''' تومان'''
-COIN = '''سکه '''
+VIEW = '''بازدید '''
 PURCHASE = '''خرید '''
 WAITING = '''پیام شما در حال پردازش می باشد...'''
 CHOOSE_MODE = '''لطفا نقش ربات را انتخاب کنید.'''
@@ -66,7 +66,7 @@ DANA_GET_KEY = "api/accounts/api_keys/"
 USER_ID = "telegram_user_{}"
 API_URL = 'http://79.132.193.62/api/telegram/'
 ACCOUNT_API = 'api/accounts/info'
-PACKAGES_API = "api/packages/"
+PLANS_API = "api/advertisements/plans/"
 PURCHASE_PACKAGES_API = "{}/direct_payment/"
 CHAT_API = 'api/chatbot/messages/'
 VOICE_API = 'api/chatbot/voice/{}'
@@ -84,15 +84,17 @@ MESSAGE_STARTED = "STARTED"
 #log
 LOG_PATH = "log"
 #prefixes
-PREFIX_PURCHASE_COIN = "purchaseCoin_"
+PREFIX_PURCHASE_PACKAGE = "purchasePackage_"
+
+PREFIX_PACKAGE_TO_USE = "packageToUse_"
 PREFIX_MODE = "mode_"
 PREFIX_MESSAGE_TO_VOICE = "messageToVoice_"
 
 
 #buttons
 START = '''شروع دوباره'''
-SHOW_COINS = u"تعداد سکه‌های شما💰"  
-SHOW_PACKAGES = u"خرید سکه🥇" 
+SHOW_PACKAGES = u"بسته های شما💰"  
+BUY_PACKAGES = u"خرید بسته🥇" 
 INVITE_CODE = u'''کد دعوت شما👥'''
 SHOW_STATS = u'''مشاهده آمار تبلیغات شما📊'''  
 NEW_AD = '''ساختن تبلیغ➕'''
@@ -102,4 +104,4 @@ SUPPORT_BUTTON = '''پشتیبانی☎️'''
 
 
 #conv
-CHOOSING, SEND_IMAGE, SEND_TEXT, CONFIRMATION = range(4)
+CHOOSING, SEND_IMAGE, SEND_TEXT, CONFIRMATION, SELECT_PACKAGE = range(5)

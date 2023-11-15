@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Dict
 
 
-checkUserJoinedChannel = True
+checkUserJoinedChannel = False
 
 
 def setup_logger(logger_name: str, log_file: str, level=logging.INFO):
@@ -155,7 +155,7 @@ async def defautlKeyboardUpdate():
     keyboard_buttons = [
         [KeyboardButton(NEW_AD)],
         [KeyboardButton(SHOW_STATS)],
-        [KeyboardButton(SHOW_PACKAGES), KeyboardButton(SHOW_COINS)],
+        [KeyboardButton(SHOW_PACKAGES), KeyboardButton(BUY_PACKAGES)],
         [KeyboardButton(SUPPORT_BUTTON)],
     ]
     reply_markup = ReplyKeyboardMarkup(
@@ -164,61 +164,8 @@ async def defautlKeyboardUpdate():
     return reply_markup
 
 
-async def start(update, context):
-    user_id = update.effective_user.id
-
-    await deleteConvertToVoiceButton(update, context, user_id)
-
-    response = await signup(user_id)
-    if response.status_code == 201:
-        data = response.json()
-        token = {"Authorization": "Token " + data["user"]["token"]}
-        dana = await getDanaAPIKey(token)
-        userToken = dana.json()
-        clients.add_client(
-            USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
-        )
-        userAPIKey = clients.get_all_clients()
-        print(userAPIKey)
-        await context.bot.send_message(
-            chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
-        )
-
-        unique_identifier = context.args[0] if len(context.args) > 0 else None
-        if unique_identifier == None:
-            invite_link_id = ""
-        else:
-            invite_link_id = unique_identifier
-            inviter_api = DANA_ADDRESS + SET_INVITER.format(invite_link_id)
-            response = requests.post(inviter_api, headers=token)
-    else:
-        response = await login(user_id)
-        print(response.json())
-        data = response.json()
-        if clients.get_clients_by_id(user_id) != None:
-            userToken = dana.json()
-            clients.update_client(user_id, data["user"]["token"], None)
-
-        else:
-            token = {"Authorization": "Token " + data["user"]["token"]}
-            dana = await getDanaAPIKey(token)
-            userToken = dana.json()
-            clients.add_client(
-                USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
-            )
-        await context.bot.send_message(
-            chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
-        )
-
-    if checkUserJoinedChannel == True:
-        if await joinChannelCheck(user_id, context) == False:
-            keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            context.bot.send_message(
-                chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
-            )
-            return
-
+# async def start(update, context):
+ 
 
 async def getCoinWallet(update, context):
     user_id = update.effective_user.id
@@ -272,41 +219,21 @@ async def getPackages(update, context):
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
     token = {"Authorization": "Token " + client["token"]}
-    getPackage = DANA_ADDRESS + PACKAGES_API
+    getPackage = DANA_ADDRESS + PLANS_API
     response = requests.get(getPackage, headers=token)
-
-    await deleteConvertToVoiceButton(update, context, user_id)
 
     if response.status_code == 200:
         data = response.json()
         keyboard = [[]]
-        for coin in data:
-            if coin["duration"] == None:
-                button = InlineKeyboardButton(
-                    PURCHASE
-                    + str(coin["coin"])
-                    + COIN
-                    + str(coin["cost"])
-                    + CURRENCY
-                    + "\n"
-                    + LIMIT_PACKAGE.format(UNLIMITED),
-                    callback_data=PREFIX_PURCHASE_COIN + str(coin["id"]),
-                )
-            else:
-                numbers = re.findall(r"\d+", coin["duration"])
-                # Extract the days, hours, minutes, and seconds from the numbers list
-                days = int(numbers[0])
-                button = InlineKeyboardButton(
-                    PURCHASE
-                    + str(coin["coin"])
-                    + COIN
-                    + str(coin["cost"])
-                    + CURRENCY
-                    + "\n"
-                    + LIMIT_PACKAGE.format(LIMIT_PACKAGE_DAYS.format(days)),
-                    callback_data=PREFIX_PURCHASE_COIN + str(coin["id"]),
-                )
-
+        for package in data["results"]:
+            button = InlineKeyboardButton(
+                PURCHASE
+                + str(package["views"])
+                + VIEW
+                + str(package["cost"])
+                + CURRENCY,
+                callback_data=PREFIX_PURCHASE_PACKAGE + str(package["id"]),
+            )
             row = [button]
             keyboard.append(row)
 
@@ -324,8 +251,9 @@ async def purchaseCoinHandler(update, context):
     user_id = update.effective_user.id
     query = update.callback_query
     button_data = query.data
-    button_data = button_data[len(PREFIX_PURCHASE_COIN) : len(button_data)]
-    api = DANA_ADDRESS + PACKAGES_API + PURCHASE_PACKAGES_API.format(button_data)
+    button_data = button_data[len(PREFIX_PURCHASE_PACKAGE
+) : len(button_data)]
+    api = DANA_ADDRESS + PLANS_API + PURCHASE_PACKAGES_API.format(button_data)
     client = clients.get_clients_by_id(USER_ID.format(user_id))
     if client == None:
         await userAuth(user_id)
@@ -358,7 +286,7 @@ async def purchaseCoinHandler(update, context):
                 + "\n"
                 + str(data["package_coins"])
                 + " "
-                + COIN
+                + VIEW
                 + "\n"
                 + str(data["package_cost"])
                 + " "
@@ -375,7 +303,7 @@ async def purchaseCoinHandler(update, context):
                 + "\n"
                 + str(data["package_coins"])
                 + " "
-                + COIN
+                + VIEW
                 + "\n"
                 + str(data["package_cost"])
                 + " "
@@ -778,6 +706,57 @@ def facts_to_str(user_data: Dict[str, str]) -> str:
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_id = update.effective_user.id
+    response = await signup(user_id)
+    if response.status_code == 201:
+        data = response.json()
+        token = {"Authorization": "Token " + data["user"]["token"]}
+        dana = await getDanaAPIKey(token)
+        userToken = dana.json()
+        clients.add_client(
+            USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
+        )
+        userAPIKey = clients.get_all_clients()
+        print(userAPIKey)
+        await context.bot.send_message(
+            chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
+        )
+
+        unique_identifier = context.args[0] if len(context.args) > 0 else None
+        if unique_identifier == None:
+            invite_link_id = ""
+        else:
+            invite_link_id = unique_identifier
+            inviter_api = DANA_ADDRESS + SET_INVITER.format(invite_link_id)
+            response = requests.post(inviter_api, headers=token)
+    else:
+        response = await login(user_id)
+        print(response.json())
+        data = response.json()
+        if clients.get_clients_by_id(user_id) != None:
+            userToken = dana.json()
+            clients.update_client(user_id, data["user"]["token"], None)
+
+        else:
+            token = {"Authorization": "Token " + data["user"]["token"]}
+            dana = await getDanaAPIKey(token)
+            userToken = dana.json()
+            clients.add_client(
+                USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
+            )
+        await context.bot.send_message(
+            chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
+        )
+
+    if checkUserJoinedChannel == True:
+        if await joinChannelCheck(user_id, context) == False:
+            keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            context.bot.send_message(
+                chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
+            )
+            return
+
     """Start the conversation, display any stored data and ask user for input."""
     reply_text = "Hi! My name is Doctor Botter."
     if context.user_data:
@@ -811,9 +790,9 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["choice"] = text
     if text == NEW_AD:
         reply_text = SEND_IMAGE_OF_AD
-    await update.message.reply_text(reply_text, reply_markup=await secondryKeyboard())
-    return SEND_IMAGE
-
+        await update.message.reply_text(reply_text, reply_markup=await secondryKeyboard())
+        return SEND_IMAGE
+    
 
 # async def received_information(
 #     update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -849,26 +828,28 @@ async def receivedImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 
 async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["ad_text"] = update.message.text
-    keyboard_buttons = [[KeyboardButton(CONFIRM)], [KeyboardButton(CANCEL)]]
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
-    )
-    photo_id = context.user_data.get("photo_id")
-    if photo_id:
-        # Get the File object for the photo
-        file = await context.bot.get_file(photo_id)
-        if file:
-            # Send the photo to the user
-            await context.bot.send_photo(
-                chat_id=update.effective_chat.id,
-                photo=file,
-                caption=context.user_data["ad_text"],
-            )
+    try:
+        context.user_data["ad_text"] = update.message.text
+        keyboard_buttons = [[KeyboardButton(CONFIRM)], [KeyboardButton(CANCEL)]]
+        reply_markup = ReplyKeyboardMarkup(
+            keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+        )
+        photo_id = context.user_data.get("photo_id")
+        if photo_id:
+                # Send the photo to the user
+                await context.bot.send_photo(
+                    chat_id= update.effective_chat.id,
+                    photo=photo_id,
+                    caption=context.user_data["ad_text"],
+                )
+        await update.message.reply_text(text=AD_CONFIRMATION, reply_markup=reply_markup)
+        return CONFIRMATION
+    except Exception as e:
+        print(e)
+        return await cancelOperation(update, context)
 
-    await update.message.reply_text(text=AD_CONFIRMATION, reply_markup=reply_markup)
 
-    return CONFIRMATION
+
 
 
 async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
