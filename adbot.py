@@ -65,6 +65,8 @@ def main():
         states={
             CHOOSING: [
                 MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice),
+                CommandHandler("start", handler.start),
+
             ],
             SEND_IMAGE: [
                 MessageHandler(
@@ -73,7 +75,7 @@ def main():
                 ),
                 MessageHandler(
                     filters.PHOTO & ~(filters.COMMAND | filters.Regex("^Done$")),
-                    handler.receiveImage,
+                    handler.receivedImage,
                 ),
             ],
             SEND_TEXT: [

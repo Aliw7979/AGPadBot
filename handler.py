@@ -763,7 +763,7 @@ async def help(update, context):
 
 async def restart(update, context):
     logger.info("User {0} ended the chat.".format(update.effective_chat))
-    return ConversationHandler.END
+    return CHOOSING
 
 
 async def end(update, context):
@@ -797,60 +797,58 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return CHOOSING
 
 
+async def secondryKeyboard():
+    keyboard_buttons = [[KeyboardButton(CANCEL)]]
+    reply_markup = ReplyKeyboardMarkup(
+        keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+    )
+    return reply_markup
+
+
 async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask the user for info about the selected predefined choice."""
     text = update.message.text.lower()
     context.user_data["choice"] = text
     if text == NEW_AD:
         reply_text = SEND_IMAGE_OF_AD
-    await update.message.reply_text(reply_text)
+    await update.message.reply_text(reply_text, reply_markup=await secondryKeyboard())
     return SEND_IMAGE
 
 
-async def custom_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Ask the user for a description of a custom category."""
-    await update.message.reply_text(
-        'Alright, please send me the category first, for example "Most impressive skill"'
-    )
+# async def received_information(
+#     update: Update, context: ContextTypes.DEFAULT_TYPE
+# ) -> int:
+#     """Store info provided by user and ask for the next category."""
+#     text = update.message.text
+#     choice = context.user_data["choice"]
+#     if choice == CANCEL:
+#         return
+#     context.user_data[choice] = text.lower()
+#     del context.user_data["choice"]
 
-    return TYPING_CHOICE
+#     await update.message.reply_text(
+#         "Neat! Just so you know, this is what you already told me:"
+#         f"{facts_to_str(context.user_data)}"
+#         "You can tell me more, or change your opinion on something.",
+#         reply_markup=await defautlKeyboardUpdate(),
+#     )
 
-
-async def received_information(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
-    """Store info provided by user and ask for the next category."""
-    text = update.message.text
-    choice = context.user_data["choice"]
-    if choice == CANCEL:
-        return
-    context.user_data[choice] = text.lower()
-    del context.user_data["choice"]
-
-    await update.message.reply_text(
-        "Neat! Just so you know, this is what you already told me:"
-        f"{facts_to_str(context.user_data)}"
-        "You can tell me more, or change your opinion on something.",
-        reply_markup=await defautlKeyboardUpdate(),
-    )
-
-    return CHOOSING
+#     return CHOOSING
 
 
-async def receiveImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def receivedImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # Get the photo file ID
     photoId = update.message.photo[-1].file_id
     # Store the photo file ID in user data
     context.user_data["photo_id"] = photoId
-    keyboard_buttons = [[KeyboardButton(CANCEL)]]
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+
+    await update.message.reply_text(
+        text=SEND_TEXT_OF_AD, reply_markup=await secondryKeyboard()
     )
-    await update.message.reply_text(text=SEND_TEXT_OF_AD, reply_markup=reply_markup)
     return SEND_TEXT
 
 
-async def receiveText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["ad_text"] = update.message.text
     keyboard_buttons = [[KeyboardButton(CONFIRM)], [KeyboardButton(CANCEL)]]
     reply_markup = ReplyKeyboardMarkup(
@@ -859,11 +857,15 @@ async def receiveText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     photo_id = context.user_data.get("photo_id")
     if photo_id:
         # Get the File object for the photo
-        file = context.bot.get_file(photo_id)
+        file = await context.bot.get_file(photo_id)
         if file:
             # Send the photo to the user
-            context.bot.send_photo(chat_id=update.effective_chat.id, photo=file, caption= context.user_data["ad_text"])
-    
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=file,
+                caption=context.user_data["ad_text"],
+            )
+
     await update.message.reply_text(text=AD_CONFIRMATION, reply_markup=reply_markup)
 
     return CONFIRMATION
@@ -885,16 +887,22 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         f"I learned these facts about you: {facts_to_str(context.user_data)}Until next time!",
         reply_markup=ReplyKeyboardRemove(),
     )
-    return ConversationHandler.END
+    return CHOOSING
 
 
 async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text(text = AD_DONE, reply_markup= await defautlKeyboardUpdate())
-    
+    if update.message.text == CANCEL:
+        await update.message.reply_text(text=CANCEL_MESSAGE)
+        return await cancelOperation(update,context)
+
+
+    await update.message.reply_text(
+        text=AD_DONE, reply_markup=await defautlKeyboardUpdate()
+    )
 
 
 async def cancelOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         text=CANCEL_MESSAGE, reply_markup=await defautlKeyboardUpdate()
     )
-    return ConversationHandler.END
+    return CHOOSING
