@@ -57,7 +57,7 @@ AD_DONE = '''عملیات با موفقیت انجام شد.
 برای دیدن تبلیغ اضافه شده و همچنین وضعیت تایید آن توسط ادمین از گزینه <مشاهده آمار تبلیغات شما📊> استفاده کنید.'''
 #Api stuff
 LEXEME_ADDRESS = "http://79.132.193.62:81/"
-DANA_ADDRESS = "http://79.132.193.62:80/"
+AD_ADDRESS = "http://79.132.193.62:82/"
 SET_INVITER = "api/accounts/inviter/{}"
 BALE_BOT_LINK = "https://ble.ir/AgpDanaBot/"
 LEXEME_SIGNUP = "account/signup/telegrambot"

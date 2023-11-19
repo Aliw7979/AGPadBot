@@ -141,7 +141,7 @@ async def login(user_id):
 
 
 async def getDanaAPIKey(token):
-    api = DANA_ADDRESS + DANA_GET_KEY
+    api = AD_ADDRESS + DANA_GET_KEY
     response = requests.post(api, headers=token)
     return response
 
@@ -169,7 +169,7 @@ async def defautlKeyboardUpdate():
 
 async def getCoinWallet(update, context):
     user_id = update.effective_user.id
-    api = DANA_ADDRESS + ACCOUNT_API
+    api = AD_ADDRESS + ACCOUNT_API
     client = clients.get_clients_by_id(USER_ID.format(user_id))
     if client == None:
         await userAuth(user_id)
@@ -218,9 +218,9 @@ async def getPackages(update, context):
     if client == None:
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
-    token = {"Authorization": "Token " + client["token"]}
-    getPackage = DANA_ADDRESS + PLANS_API
-    response = requests.get(getPackage, headers=token)
+    # token = {"Authorization": "Token " + client["token"]}
+    getPackage = AD_ADDRESS + PLANS_API
+    response = requests.get(getPackage, headers=API_TOKEN)
 
     if response.status_code == 200:
         data = response.json()
@@ -253,7 +253,7 @@ async def purchaseCoinHandler(update, context):
     button_data = query.data
     button_data = button_data[len(PREFIX_PURCHASE_PACKAGE
 ) : len(button_data)]
-    api = DANA_ADDRESS + PLANS_API + PURCHASE_PACKAGES_API.format(button_data)
+    api = AD_ADDRESS + PLANS_API + PURCHASE_PACKAGES_API.format(button_data)
     client = clients.get_clients_by_id(USER_ID.format(user_id))
     if client == None:
         await userAuth(user_id)
@@ -356,7 +356,7 @@ async def textMessageHandler(update, context):
     try:
         pendingMessage = None
         user_id = update.effective_user.id
-        api = DANA_ADDRESS + CHAT_API
+        api = AD_ADDRESS + CHAT_API
         if checkUserJoinedChannel == True:
             if await joinChannelCheck(user_id, context) == False:
                 keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
@@ -427,7 +427,7 @@ async def textMessageHandler(update, context):
 async def voiceMessageHandler(update, context):
     pendingMessage = None
     user_id = update.effective_user.id
-    api = DANA_ADDRESS + CHAT_API
+    api = AD_ADDRESS + CHAT_API
     userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
     api_key = {"x-api-key": userAPIKey["api_key"]}
     if checkUserJoinedChannel == True:
@@ -508,7 +508,7 @@ async def voiceMessageHandler(update, context):
 async def messageToVoice(update, context):
     query = update.callback_query
     user_id = update.effective_user.id
-    api = DANA_ADDRESS + VOICE_API
+    api = AD_ADDRESS + VOICE_API
     lastMessageUserRecieved = lastMessages.get_message_by_id(USER_ID.format(user_id))
     api = api.format(lastMessageUserRecieved["message"])
     userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
@@ -549,7 +549,7 @@ async def messageToVoice(update, context):
 #         client = clients.get_clients_by_id(USER_ID.format(user_id))
 
 #     token = {"Authorization" : "Token " + client["token"]}
-#     api = DANA_ADDRESS + ACCOUNT_API
+#     api = AD_ADDRESS + ACCOUNT_API
 #     response = requests.get(api, headers=token)
 #     invite_link = response.json()["invitation_code"]
 
@@ -570,7 +570,7 @@ async def messageToVoice(update, context):
 
 async def getChatModes(update, context):
     user_id = update.effective_user.id
-    getPackage = DANA_ADDRESS + MODES
+    getPackage = AD_ADDRESS + MODES
     userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
     if userAPIKey == None:
         await userAuth(user_id)
@@ -619,7 +619,7 @@ async def chooseModeHandler(update, context):
     query = update.callback_query
     button_data = query.data
     button_data = button_data[len(PREFIX_MODE) : len(button_data)]
-    api = DANA_ADDRESS + SELECT_MODE.format(button_data)
+    api = AD_ADDRESS + SELECT_MODE.format(button_data)
     userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
     if userAPIKey == None:
         await userAuth(user_id)
@@ -650,7 +650,7 @@ async def chooseModeHandler(update, context):
 
 async def newChat(update, context):
     user_id = update.effective_user.id
-    api = DANA_ADDRESS + DEFAULT_CONV
+    api = AD_ADDRESS + DEFAULT_CONV
     userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
     if userAPIKey == None:
         await userAuth(user_id)
@@ -727,7 +727,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             invite_link_id = ""
         else:
             invite_link_id = unique_identifier
-            inviter_api = DANA_ADDRESS + SET_INVITER.format(invite_link_id)
+            inviter_api = AD_ADDRESS + SET_INVITER.format(invite_link_id)
             response = requests.post(inviter_api, headers=token)
     else:
         response = await login(user_id)
