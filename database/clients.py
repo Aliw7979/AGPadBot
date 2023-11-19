@@ -3,66 +3,63 @@ import redis
 # Connect to Redis
 r = redis.Redis(host='localhost', port=6379, db=0)
 
-def add_client(telegram_id, token, api_key):
-    # Store the client details as a hash in Redis
+def add_client(telegram_id, token):
+    # Store the clientOfAd details as a hash in Redis
     client_data = {
         'token': token,
-        'api_key': api_key,
     }
-    r.hmset(f'client:{telegram_id}', client_data)
-    print(f"client by id : {telegram_id} , token : {token} and api_key: {api_key} created.")
+    r.hmset(f'clientOfAd:{telegram_id}', client_data)
+    print(f"clientOfAd by id : {telegram_id} , token : {token}")
 
 
-def update_client(telegram_id, token=None, api_key=None):
+def update_client(telegram_id, token=None):
     # Check if either token or API key is provided
-    if token is None and api_key is None:
+    if token is None:
         return  # No updates to perform
 
-    # Update the client details in Redis
+    # Update the clientOfAd details in Redis
     with r.pipeline() as pipe:
         pipe.multi()
         if token is not None:
-            pipe.hset(f'client:{telegram_id}', 'token', token)
-        if api_key is not None:
-            pipe.hset(f'client:{telegram_id}', 'api_key', api_key)
+            pipe.hset(f'clientOfAd:{telegram_id}', 'token', token)
         pipe.execute()
         
 def get_clients_by_id(telegram_id):
-    # Retrieve the client details by ID from Redis
-    client_data = r.hgetall(f'client:{telegram_id}')
+    # Retrieve the clientOfAd details by ID from Redis
+    client_data = r.hgetall(f'clientOfAd:{telegram_id}')
     if client_data:
-        client = {}
+        clientOfAd = {}
         for key, value in client_data.items():
-            client[key.decode()] = value.decode()
-        return client
+            clientOfAd[key.decode()] = value.decode()
+        return clientOfAd
     else:
         return None
 
 def remove_client(telegram_id):
-    # Remove the client details from Redis
-    r.delete(f'client:{telegram_id}')
+    # Remove the clientOfAd details from Redis
+    r.delete(f'clientOfAd:{telegram_id}')
 
 def get_all_clients():
-    # Retrieve all client keys
-    client_keys = r.keys('client:*')
+    # Retrieve all clientOfAd keys
+    client_keys = r.keys('clientOfAd:*')
 
-    # Retrieve client details for each key
+    # Retrieve clientOfAd details for each key
     clients = []
     for key in client_keys:
 
 
         telegram_id = key.decode().split(':')[1]
         client_data = r.hgetall(key)
-        client = {field.decode(): value.decode() for field, value in client_data.items()}
-        clients.append(client)
+        clientOfAd = {field.decode(): value.decode() for field, value in client_data.items()}
+        clients.append(clientOfAd)
 
     return clients
 
 def delete_all_clients():
-    # Retrieve all client keys
-    client_keys = r.keys('client:*')
+    # Retrieve all clientOfAd keys
+    client_keys = r.keys('clientOfAd:*')
 
-    # Delete client hashes
+    # Delete clientOfAd hashes
     for key in client_keys:
         r.delete(key)
 

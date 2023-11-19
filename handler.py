@@ -91,10 +91,9 @@ async def userAuth(user_id):
     if response.status_code == 201:
         data = response.json()
         token = {"Authorization": "Token " + data["user"]["token"]}
-        dana = await getDanaAPIKey(token)
-        userToken = dana.json()
+
         clients.add_client(
-            USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
+            USER_ID.format(user_id), data["user"]["token"]
         )
         userAPIKey = clients.get_all_clients()
         print(userAPIKey)
@@ -103,15 +102,13 @@ async def userAuth(user_id):
         print(response.json())
         data = response.json()
         if clients.get_clients_by_id(user_id) != None:
-            userToken = dana.json()
-            clients.update_client(user_id, data["user"]["token"], None)
+            clients.update_client(user_id, data["user"]["token"])
 
         else:
             token = {"Authorization": "Token " + data["user"]["token"]}
-            dana = await getDanaAPIKey(token)
-            userToken = dana.json()
+
             clients.add_client(
-                USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
+                USER_ID.format(user_id), data["user"]["token"]
             )
 
 
@@ -140,10 +137,7 @@ async def login(user_id):
     return response
 
 
-async def getDanaAPIKey(token):
-    api = AD_ADDRESS + DANA_GET_KEY
-    response = requests.post(api, headers=token)
-    return response
+
 
 
 async def defautlKeyboardUpdate():
@@ -214,11 +208,14 @@ async def getCoinWallet(update, context):
 
 async def getPackages(update, context):
     user_id = update.effective_user.id
+    print("ok")
     client = clients.get_clients_by_id(USER_ID.format(user_id))
+    print("ok1")
     if client == None:
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
     # token = {"Authorization": "Token " + client["token"]}
+    print("ok2")
     getPackage = AD_ADDRESS + PLANS_API
     response = requests.get(getPackage, headers=API_TOKEN)
 
@@ -259,6 +256,7 @@ async def purchaseCoinHandler(update, context):
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
     token = {"Authorization": "Token " + client["token"]}
+    print(token)
     response = requests.get(api, headers=token)
 
     if checkUserJoinedChannel == True:
@@ -272,40 +270,17 @@ async def purchaseCoinHandler(update, context):
 
     if response.status_code == 200:
         data = response.json()
-        numbers = re.findall(r"\d+", data["package_duration"])
-        # Extract the days, hours, minutes, and seconds from the numbers list
-        days = int(numbers[0])
-        if days == None:
-            await context.bot.send_message(
+        await context.bot.send_message(
                 chat_id=user_id,
                 text=PURCHASE_LINK
                 + "\n"
                 + data["redirect_url"]
                 + "\n"
-                + LIMIT_PACKAGE.format(UNLIMITED)
-                + "\n"
-                + str(data["package_coins"])
+                + str(data["plan_views"])
                 + " "
                 + VIEW
                 + "\n"
-                + str(data["package_cost"])
-                + " "
-                + CURRENCY,
-            )
-        else:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=PURCHASE_LINK
-                + "\n"
-                + data["redirect_url"]
-                + "\n"
-                + LIMIT_PACKAGE.format(LIMIT_PACKAGE_DAYS.format(days))
-                + "\n"
-                + str(data["package_coins"])
-                + " "
-                + VIEW
-                + "\n"
-                + str(data["package_cost"])
+                + str(data["plan_cost"])
                 + " "
                 + CURRENCY,
             )
@@ -711,10 +686,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if response.status_code == 201:
         data = response.json()
         token = {"Authorization": "Token " + data["user"]["token"]}
-        dana = await getDanaAPIKey(token)
-        userToken = dana.json()
         clients.add_client(
-            USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
+            USER_ID.format(user_id), data["user"]["token"]
         )
         userAPIKey = clients.get_all_clients()
         print(userAPIKey)
@@ -734,15 +707,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         print(response.json())
         data = response.json()
         if clients.get_clients_by_id(user_id) != None:
-            userToken = dana.json()
-            clients.update_client(user_id, data["user"]["token"], None)
+            clients.update_client(user_id, data["user"]["token"])
 
         else:
             token = {"Authorization": "Token " + data["user"]["token"]}
-            dana = await getDanaAPIKey(token)
-            userToken = dana.json()
             clients.add_client(
-                USER_ID.format(user_id), data["user"]["token"], api_key=userToken["key"]
+                USER_ID.format(user_id), data["user"]["token"]
             )
         await context.bot.send_message(
             chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
