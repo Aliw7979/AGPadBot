@@ -6,3 +6,4 @@ config.py
 cache
 log
 __pycache__/
+conversationbot
