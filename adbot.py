@@ -19,12 +19,6 @@ from telegram.ext import (
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 
 
-reply_keyboard = [
-    ["Age", "Favourite colour"],
-    ["Number of siblings", "Something else..."],
-    ["Done"],
-]
-markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
 def resolve_args():
@@ -66,7 +60,6 @@ def main():
         states={
             CHOOSING: [
                 MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice),
-                MessageHandler(filters.Regex(r"" + SHOW_PACKAGES), handler.adChoice),
                 MessageHandler(filters.Regex(r"" + SHOW_STATS), handler.adChoice),
             ],
             SELECT_PACKAGE: [
@@ -112,6 +105,7 @@ def main():
     application.add_handler(MessageHandler(filters.Regex(r'/start'), handler.start))
     application.add_handler(conv_handler)
     application.add_handler(MessageHandler(filters.Regex(r'' + BUY_PACKAGES), handler.getPackages))
+    application.add_handler(MessageHandler(filters.Regex(r'' + SHOW_PACKAGES ), handler.getMyPackages),)
     application.add_handler(CallbackQueryHandler(handler.purchaseCoinHandler, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
     show_data_handler = CommandHandler("show_data", handler.show_data)
     application.add_handler(show_data_handler)

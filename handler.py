@@ -161,7 +161,7 @@ async def defautlKeyboardUpdate():
 # async def start(update, context):
  
 
-async def getCoinWallet(update, context):
+async def getMyPackages(update, context):
     user_id = update.effective_user.id
     api = AD_ADDRESS + ACCOUNT_API
     client = clients.get_clients_by_id(USER_ID.format(user_id))
