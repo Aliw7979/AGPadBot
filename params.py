@@ -55,6 +55,7 @@ CONFIRM = '''بله✅'''
 AD_DONE = '''عملیات با موفقیت انجام شد.
 تبلیغ شما در حال بررسی برای ثبت می باشد
 برای دیدن تبلیغ اضافه شده و همچنین وضعیت تایید آن توسط ادمین از گزینه <مشاهده آمار تبلیغات شما📊> استفاده کنید.'''
+SELECTED_PACKAGE = 'بسته مورد نظر شما انتخاب شد'
 #Api stuff
 LEXEME_ADDRESS = "http://79.132.193.62:81/"
 AD_ADDRESS = "http://79.132.193.62:82/"
@@ -67,6 +68,7 @@ USER_ID = "telegram_user_{}"
 API_URL = 'http://79.132.193.62/api/telegram/'
 ACCOUNT_API = 'api/accounts/info'
 PLANS_API = "api/advertisements/plans/"
+GET_SELECTED_AD = "api/advertisements/{}/"
 PURCHASE_PACKAGES_API = "{}/direct_payment/"
 CHAT_API = 'api/chatbot/messages/'
 VOICE_API = 'api/chatbot/voice/{}'
@@ -101,6 +103,7 @@ NEW_AD = '''ساختن تبلیغ➕'''
 CANCEL = 'انصراف❌'
 SUBMIT = 'تأیید نهایی✅'
 SUPPORT_BUTTON = '''پشتیبانی☎️'''
+
 
 
 #conv

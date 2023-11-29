@@ -63,9 +63,9 @@ def main():
                 MessageHandler(filters.Regex(r"" + SHOW_STATS), handler.adChoice),
             ],
             SELECT_PACKAGE: [
-                # CallbackQueryHandler(
-                #     handler.choosePackageToUse, pattern=f"^{PREFIX_PACKAGE_TO_USE}"
-                # ),
+                CallbackQueryHandler(
+                    handler.choosePackageToUse, pattern=f"^{PREFIX_PACKAGE_TO_USE}"
+                ),
                 MessageHandler(
                     filters.Regex(r"" + CANCEL),
                     handler.cancelOperation,

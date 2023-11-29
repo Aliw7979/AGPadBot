@@ -821,12 +821,55 @@ async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 
+async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    button_data = query.data
+    button_data = button_data[len(PREFIX_PACKAGE_TO_USE
+    ) : len(button_data)]
+    context.user_data["adId"] = button_data
+    # client = clients.get_clients_by_id(USER_ID.format(user_id))
+    # if client == None:
+    #     await userAuth(user_id)
+    #     client = clients.get_clients_by_id(USER_ID.format(user_id))
+    # token = {"Authorization": "Token " + client["token"]}
+    # response = requests.get(AD_ADDRESS + GET_SELECTED_AD.format(context), headers=token)
+    await update.message.reply_text(SELECTED_PACKAGE)
+    return SEND_IMAGE
 
-async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display the gathered info."""
-    await update.message.reply_text(
-        f"This is what you already told me: {facts_to_str(context.user_data)}"
-    )
+
+async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_id  = update.effective_chat.id
+    photo_id = context.user_data["photoId"]
+    if update.message.text == CANCEL:
+        await update.message.reply_text(text=CANCEL_MESSAGE)
+        return await cancelOperation(update,context)
+
+    else:
+        client = clients.get_clients_by_id(USER_ID.format(user_id))
+        if client == None:
+            await userAuth(user_id)
+            client = clients.get_clients_by_id(USER_ID.format(user_id))
+        
+        token = {"Authorization": "Token " + client["token"]}
+        # Get the file path using the getFile method
+        file_path = await context.bot.get_file(photo_id).file_path
+        # Download the photo using the file path
+        photo_url = f"https://api.telegram.org/file/bot{context.bot.token}/{file_path}"
+        photo_file = requests.get(photo_url)
+
+        response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["adId"]),headers=token,files = photo_file, data={context.user_data["ad_text"]})
+        if response.status_code == 200:
+            await update.message.reply_text(
+                text=AD_DONE, reply_markup=await defautlKeyboardUpdate()
+            )
+            return CHOOSING
+        else:
+            await update.message.reply_text(
+                text=SERVICEDOWN, reply_markup=await defautlKeyboardUpdate()
+            )
+            return CHOOSING
+            
 
 
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -840,16 +883,6 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return CHOOSING
 
-
-async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.message.text == CANCEL:
-        await update.message.reply_text(text=CANCEL_MESSAGE)
-        return await cancelOperation(update,context)
-
-
-    await update.message.reply_text(
-        text=AD_DONE, reply_markup=await defautlKeyboardUpdate()
-    )
 
 
 async def cancelOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
