@@ -68,13 +68,9 @@ USER_ID = "telegram_user_{}"
 API_URL = 'http://79.132.193.62/api/telegram/'
 ACCOUNT_API = 'api/accounts/info'
 PLANS_API = "api/advertisements/plans/"
+PURCHASED_PLANS_API = "api/advertisements/"
 GET_SELECTED_AD = "api/advertisements/{}/"
 PURCHASE_PACKAGES_API = "{}/direct_payment/"
-CHAT_API = 'api/chatbot/messages/'
-VOICE_API = 'api/chatbot/voice/{}'
-MODES = "api/chatbot/modes/"
-SELECT_MODE = "api/chatbot/new_conversation?mode_id={}"
-DEFAULT_CONV = "api/chatbot/new_conversation"
 RESET_API = 'reset/'
 TELEGRAM_BOT_LINK = "https://t.me/AgpDanaBot"
 CHANNEL_LINK = "https://t.me/asrgooyeshpardaz"

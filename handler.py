@@ -327,195 +327,6 @@ async def insertToLastMessage(user_id, id):
         lastMessages.update_message(user_id, id)
 
 
-async def textMessageHandler(update, context):
-    try:
-        pendingMessage = None
-        user_id = update.effective_user.id
-        api = AD_ADDRESS + CHAT_API
-        if checkUserJoinedChannel == True:
-            if await joinChannelCheck(user_id, context) == False:
-                keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await context.bot.send_message(
-                    chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
-                )
-                return
-
-        pendingMessage = await context.bot.send_message(chat_id=user_id, text=WAITING)
-        reply_markup = await convertToVoiceKeyboard()
-        await deleteConvertToVoiceButton(update, context, user_id)
-        userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-        if userAPIKey == None:
-            await userAuth(user_id)
-            userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-        api_key = {"x-api-key": userAPIKey["api_key"]}
-        response = requests.post(
-            api, headers=api_key, json={"text": update.message.text}
-        )
-        if response.status_code == 200:
-            if response.json()["status"] == MESSAGE_PENDING:
-                trackingUrl = response.json()["tracking_url"]
-                print(f"respose from server : {response.json()}")
-
-                while True:
-                    time.sleep(0.3)
-                    trackResponse = requests.get(trackingUrl, headers=api_key)
-                    print(trackResponse.json())
-                    if (
-                        trackResponse.json()["status"] == MESSAGE_PENDING
-                        or trackResponse.json()["status"] == MESSAGE_STARTED
-                    ):
-                        continue
-                    elif trackResponse.json()["status"] == MESSAGE_FAILED:
-                        await context.bot.send_message(
-                            chat_id=user_id, text=SERVICEDOWN
-                        )
-                        break
-                    elif trackResponse.json()["status"] == MESSAGE_SUCCESS:
-                        await insertToLastMessage(
-                            user_id, trackResponse.json()["message_id"]
-                        )
-                        await context.bot.edit_message_text(
-                            chat_id=user_id,
-                            message_id=pendingMessage.message_id,
-                            text=trackResponse.json()["result"],
-                            reply_markup=reply_markup,
-                        )
-                        break
-
-        elif response.status_code == 402:
-            print(response.json())
-            await context.bot.edit_message_text(
-                chat_id=user_id,
-                message_id=pendingMessage.message_id,
-                text=INSUFFICIENT_COIN.format(response.json()["time_remains"]),
-            )
-
-        elif response.status_code == 429:
-            await context.bot.send_message(chat_id=user_id, text=TOO_MANY_REQ)
-        else:
-            await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-    except Exception as e:
-        print(e)
-
-
-async def voiceMessageHandler(update, context):
-    pendingMessage = None
-    user_id = update.effective_user.id
-    api = AD_ADDRESS + CHAT_API
-    userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    api_key = {"x-api-key": userAPIKey["api_key"]}
-    if checkUserJoinedChannel == True:
-        if await joinChannelCheck(user_id, context) == False:
-            keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await context.bot.send_message(
-                chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
-            )
-            return
-
-    await deleteConvertToVoiceButton(update, context, user_id)
-
-    reply_markup = await convertToVoiceKeyboard()
-
-    pendingMessage = await context.bot.send_message(chat_id=user_id, text=WAITING)
-
-    voice_file_id = update.message.voice.file_id
-    file_url = f"https://api.telegram.org/bot{config.BOT_TOKEN}/getFile?file_id={voice_file_id}"
-    response = requests.get(file_url)
-    file_data = response.json()["result"]
-    file_url = (
-        f'https://api.telegram.org/file/bot{config.BOT_TOKEN}/{file_data["file_path"]}'
-    )
-    response = requests.get(file_url)
-
-    voice_data = response.content
-
-    files = {"audio": ("voice_message.ogg", voice_data)}
-    response = requests.post(api, headers=api_key, files=files)
-    print(f"voice message structure : {response.json()}")
-
-    if response.status_code == 200:
-        if response.json()["status"] == MESSAGE_PENDING:
-            trackingUrl = response.json()["tracking_url"]
-            while True:
-                time.sleep(0.3)
-                trackResponse = requests.get(trackingUrl, headers=api_key)
-                if (
-                    trackResponse.json()["status"] == MESSAGE_PENDING
-                    or trackResponse.json()["status"] == MESSAGE_STARTED
-                ):
-                    continue
-                elif trackResponse.json()["status"] == MESSAGE_FAILED:
-                    await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-                    break
-                elif trackResponse.json()["status"] == MESSAGE_SUCCESS:
-                    await insertToLastMessage(
-                        user_id, trackResponse.json()["message_id"]
-                    )
-                    print(f"voice message structure : {trackResponse.json()}")
-                    await context.bot.edit_message_text(
-                        chat_id=user_id,
-                        message_id=pendingMessage.message_id,
-                        text=CONVERTED_USER_VOICE.format(
-                            trackResponse.json()["message"]
-                        ),
-                    )
-                    await context.bot.send_message(
-                        chat_id=user_id,
-                        text=trackResponse.json()["result"],
-                        reply_markup=reply_markup,
-                    )
-                    break
-    elif response.status_code == 402:
-        await context.bot.edit_message_text(
-            chat_id=user_id,
-            message_id=pendingMessage.message_id,
-            text=INSUFFICIENT_COIN.format(response.json()["time_remains"]),
-        )
-
-    elif response.status_code == 429:
-        await context.bot.send_message(chat_id=user_id, text=TOO_MANY_REQ)
-    else:
-        await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-
-
-async def messageToVoice(update, context):
-    query = update.callback_query
-    user_id = update.effective_user.id
-    api = AD_ADDRESS + VOICE_API
-    lastMessageUserRecieved = lastMessages.get_message_by_id(USER_ID.format(user_id))
-    api = api.format(lastMessageUserRecieved["message"])
-    userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    if userAPIKey == None:
-        await userAuth(user_id)
-        userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    api_key = {"x-api-key": userAPIKey["api_key"]}
-    response = requests.get(api, headers=api_key)
-
-    if response.status_code == 200:
-        audio_bytes = base64.b64decode(response.json()["voice"])
-        audio_file = io.BytesIO(audio_bytes)
-        voice = telegram.InputFile(audio_file)
-        await context.bot.send_voice(chat_id=user_id, voice=voice)
-        # await context.bot.answer_callback_query(callback_query_id=query.id, text = WAITING)
-        try:
-            await context.bot.edit_message_reply_markup(
-                chat_id=query.message.chat_id,
-                message_id=query.message.message_id,
-                reply_markup=None,
-            )
-        except telegram.error.BadRequest as e:
-            return
-
-    else:
-        if response["code"] == 2:
-            await context.bot.send_message(chat_id=user_id, text=INSUFFICIENT_COIN)
-
-        else:
-            await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-
-
 # async def getCoinWithInviteLink(update, context):
 #     user_id = update.effective_user.id
 #     client = clients.get_clients_by_id(USER_ID.format(user_id))
@@ -542,115 +353,6 @@ async def messageToVoice(update, context):
 #     text = INVITATION_MESSAGE.format("\n" + f"{TELEGRAM_BOT_LINK}?start={invite_link}")
 #     await context.bot.send_message(chat_id=user_id, text=text)
 
-
-async def getChatModes(update, context):
-    user_id = update.effective_user.id
-    getPackage = AD_ADDRESS + MODES
-    userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    if userAPIKey == None:
-        await userAuth(user_id)
-        userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    api_key = {"x-api-key": userAPIKey["api_key"]}
-    response = requests.get(getPackage, headers=api_key)
-
-    if checkUserJoinedChannel == True:
-        if await joinChannelCheck(user_id, context) == False:
-            keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            context.bot.send_message(
-                chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
-            )
-            return
-
-    await deleteConvertToVoiceButton(update, context, user_id)
-
-    if response.status_code == 200:
-        data = response.json()
-        keyboard = [[]]
-        for mode in data:
-            button = InlineKeyboardButton(
-                str(mode["name"]), callback_data=PREFIX_MODE + str(mode["id"])
-            )
-
-            row = [button]
-            keyboard.append(row)
-
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await context.bot.send_message(
-            chat_id=user_id, text=CHOOSE_MODE, reply_markup=reply_markup
-        )
-        await context.bot.send_message(
-            chat_id=user_id,
-            text=CLICK_MODE_BUTTON,
-            reply_markup=await defautlKeyboardUpdate(),
-        )
-
-    else:
-        await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-
-
-async def chooseModeHandler(update, context):
-    user_id = update.effective_user.id
-    query = update.callback_query
-    button_data = query.data
-    button_data = button_data[len(PREFIX_MODE) : len(button_data)]
-    api = AD_ADDRESS + SELECT_MODE.format(button_data)
-    userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    if userAPIKey == None:
-        await userAuth(user_id)
-        userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    api_key = {"x-api-key": userAPIKey["api_key"]}
-    response = requests.get(api, headers=api_key)
-
-    if checkUserJoinedChannel == True:
-        if await joinChannelCheck(user_id, context) == False:
-            keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            context.bot.send_message(
-                chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
-            )
-            return
-
-    if response.status_code == 200:
-        await context.bot.send_message(
-            chat_id=user_id, text=MODE_CHANGED.format(response.json()["bot_mode_name"])
-        )
-        await context.bot.answer_callback_query(
-            callback_query_id=query.id, text=WAITING
-        )
-        # await context.bot.edit_message_reply_markup(chat_id=user_id, message_id=query.message.message_id, reply_markup=)
-    else:
-        await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-
-
-async def newChat(update, context):
-    user_id = update.effective_user.id
-    api = AD_ADDRESS + DEFAULT_CONV
-    userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    if userAPIKey == None:
-        await userAuth(user_id)
-        userAPIKey = clients.get_clients_by_id(USER_ID.format(user_id))
-    api_key = {"x-api-key": userAPIKey["api_key"]}
-    response = requests.get(api, headers=api_key)
-    await deleteConvertToVoiceButton(update, context, user_id)
-
-    if checkUserJoinedChannel == True:
-        if await joinChannelCheck(user_id, context) == False:
-            keyboard = [[InlineKeyboardButton(ENROLMENT_BUTTON, url=CHANNEL_LINK)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            context.bot.send_message(
-                chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
-            )
-            return
-
-    if response.status_code == 200:
-        await context.bot.send_message(
-            chat_id=user_id, text=RESET_CHAT, reply_markup=await defautlKeyboardUpdate()
-        )
-    else:
-        await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-
-
 async def support(update, context):
     await context.bot.sendMessage(
         chat_id=update.message.chat_id,
@@ -672,12 +374,6 @@ async def restart(update, context):
 async def end(update, context):
     logger.info("User {0} chat timeouted.".format(update.effective_chat))
     return ConversationHandler.TIMEOUT
-
-
-def facts_to_str(user_data: Dict[str, str]) -> str:
-    """Helper function for formatting the gathered user info."""
-    facts = [f"{key} - {value}" for key, value in user_data.items()]
-    return "\n".join(facts).join(["\n", "\n"])
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -756,13 +452,44 @@ async def secondryKeyboard():
 
 async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask the user for info about the selected predefined choice."""
+    user_id = update.effective_user.id
     text = update.message.text.lower()
     context.user_data["choice"] = text
     if text == NEW_AD:
         reply_text = SEND_IMAGE_OF_AD
-        await update.message.reply_text(reply_text, reply_markup=await secondryKeyboard())
-        return SEND_IMAGE
-    
+        client = clients.get_clients_by_id(USER_ID.format(user_id))
+        if client == None:
+            await userAuth(user_id)
+            client = clients.get_clients_by_id(USER_ID.format(user_id))
+        token = {"Authorization": "Token " + client["token"]}
+        getAds = AD_ADDRESS + PURCHASED_PLANS_API
+        response = requests.get(getAds, headers=token)
+        if response.status_code == 200:
+            data = response.json()
+            keyboard = [[]]
+            for package in data["results"]:
+                button = InlineKeyboardButton(
+                    PURCHASE
+                    + str(package["views"])
+                    + VIEW
+                    + str(package["cost"])
+                    + CURRENCY,
+                    callback_data=PREFIX_PURCHASE_PACKAGE + str(package["id"]),
+                )
+                row = [button]
+                keyboard.append(row)
+
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await context.bot.send_message(
+                chat_id=user_id, text=CHOOSE_PACKAGE, reply_markup=reply_markup
+            )
+            await context.bot.send_message(chat_id=user_id, text=CLICK_COIN_BUTTON)
+
+        else:
+            await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
+            await update.message.reply_text(reply_text, reply_markup=await secondryKeyboard())
+            return SELECT_PACKAGE
+
 
 # async def received_information(
 #     update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -870,19 +597,6 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return CHOOSING
             
-
-
-async def done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Display the gathered info and end the conversation."""
-    if "choice" in context.user_data:
-        del context.user_data["choice"]
-
-    await update.message.reply_text(
-        f"I learned these facts about you: {facts_to_str(context.user_data)}Until next time!",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    return CHOOSING
-
 
 
 async def cancelOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
