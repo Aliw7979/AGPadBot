@@ -49,9 +49,8 @@ def main():
             raise e
     """Run the bot."""
     # Create the Application and pass it your bot's token.
-    persistence = PicklePersistence(filepath="conversationbot")
     application = (
-        Application.builder().token(config.BOT_TOKEN).persistence(persistence).build()
+        Application.builder().token(config.BOT_TOKEN).build()
     )
 
     # Add conversation handler with the states CHOOSING, CONFIRMATION and SEND_IMAGE
@@ -99,16 +98,11 @@ def main():
             ],
         },
         fallbacks=[MessageHandler(filters.Regex("^Done$"), handler.done)],
-        name="my_conversation",
-        persistent=True,
     )
-    application.add_handler(MessageHandler(filters.Regex(r'/start'), handler.start))
     application.add_handler(conv_handler)
     application.add_handler(MessageHandler(filters.Regex(r'' + BUY_PACKAGES), handler.getPackages))
     application.add_handler(MessageHandler(filters.Regex(r'' + SHOW_PACKAGES ), handler.getMyPackages),)
     application.add_handler(CallbackQueryHandler(handler.purchaseCoinHandler, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
-    show_data_handler = CommandHandler("show_data", handler.show_data)
-    application.add_handler(show_data_handler)
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 

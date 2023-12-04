@@ -438,7 +438,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         reply_text, reply_markup=await defautlKeyboardUpdate()
     )
-
     return CHOOSING
 
 
@@ -479,16 +478,18 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 row = [button]
                 keyboard.append(row)
 
+            if len(keyboard) == 0:
+                await update.message.reply_text(text =DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
+                return CHOOSING
+            
             reply_markup = InlineKeyboardMarkup(keyboard)
             await context.bot.send_message(
-                chat_id=user_id, text=CHOOSE_PACKAGE, reply_markup=reply_markup
+                chat_id=user_id, text=CHOOSE_PURCHASED_PACKAGE, reply_markup=reply_markup
             )
-            await context.bot.send_message(chat_id=user_id, text=CLICK_COIN_BUTTON)
-
-        else:
-            await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-            await update.message.reply_text(reply_text, reply_markup=await secondryKeyboard())
             return SELECT_PACKAGE
+        else:
+            await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
+            return CHOOSING
 
 
 # async def received_information(
@@ -597,6 +598,8 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return CHOOSING
             
+async def done(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return CHOOSING
 
 
 async def cancelOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
