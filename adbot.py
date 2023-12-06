@@ -102,7 +102,8 @@ def main():
     application.add_handler(conv_handler)
     application.add_handler(MessageHandler(filters.Regex(r'' + BUY_PACKAGES), handler.getPackages))
     application.add_handler(MessageHandler(filters.Regex(r'' + SHOW_PACKAGES ), handler.getMyPackages),)
-    application.add_handler(CallbackQueryHandler(handler.purchaseCoinHandler, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
+    application.add_handler(CallbackQueryHandler(handler.purchasePlan, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
+    application.add_handler(MessageHandler(filters.Regex(r'' + SUPPORT_BUTTON), handler.support))
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 

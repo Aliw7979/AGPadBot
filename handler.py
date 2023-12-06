@@ -161,7 +161,7 @@ async def defautlKeyboardUpdate():
 # async def start(update, context):
  
 
-async def getMyPackages(update, context):
+async def getMyPackages(update: Update, context):
     user_id = update.effective_user.id
     api = AD_ADDRESS + ACCOUNT_API
     client = clients.get_clients_by_id(USER_ID.format(user_id))
@@ -169,42 +169,20 @@ async def getMyPackages(update, context):
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
     token = {"Authorization": "Token " + client["token"]}
-    response = requests.get(api, headers=token)
-
-    await deleteConvertToVoiceButton(update, context, user_id)
-
+    getAds = AD_ADDRESS + PURCHASED_PLANS_API
+    response = requests.get(getAds, headers=token)
     if response.status_code == 200:
         data = response.json()
-        if data["package_end_time"] == None:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=NOWCOINS.format(str(data["package_coin_remain"]))
-                + "\n"
-                + PACKAGE_DURATION.format(str(UNLIMITED)),
-            )
-        else:
-            dt = datetime.strptime(data["package_end_time"], "%Y-%m-%dT%H:%M:%S%z")
-
-            # Extract year, month, and day
-            jdate = jdatetime.datetime.fromgregorian(datetime=dt)
-
-            # Extract the Jalali year, month, and day
-            jalali_year = jdate.year
-            jalali_month = jdate.month
-            jalali_day = jdate.day
-            duration = DURATION.format(
-                jalali_year, jalali_month, jalali_day, dt.hour, dt.minute, dt.second
-            )
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=NOWCOINS.format(str(data["package_coin_remain"]))
-                + "\n"
-                + PACKAGE_DURATION.format(duration),
-            )
-
-    else:
-        await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
-
+        is_empty = True
+        for package in data["results"]:
+            if(package["initialized"] == False):
+                await update.message.reply_text(PACKAGE_INFO.format(str(package["plan_views"])))
+                is_empty = False
+        if is_empty == True:
+            await update.message.reply_text(text = DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
+            return CHOOSING
+        
+    return CHOOSING
 
 async def getPackages(update, context):
     user_id = update.effective_user.id
@@ -244,7 +222,7 @@ async def getPackages(update, context):
         await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
 
 
-async def purchaseCoinHandler(update, context):
+async def purchasePlan(update, context):
     user_id = update.effective_user.id
     query = update.callback_query
     button_data = query.data
@@ -422,22 +400,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
             )
             return
-
-    """Start the conversation, display any stored data and ask user for input."""
-    reply_text = "Hi! My name is Doctor Botter."
-    if context.user_data:
-        reply_text += (
-            f" You already told me your {', '.join(context.user_data.keys())}. Why don't you "
-            "tell me something more about yourself? Or change anything I already know."
-        )
-    else:
-        reply_text += (
-            " I will hold a more complex conversation with you. Why don't you tell me "
-            "something about yourself?"
-        )
-    await update.message.reply_text(
-        reply_text, reply_markup=await defautlKeyboardUpdate()
-    )
     return CHOOSING
 
 
