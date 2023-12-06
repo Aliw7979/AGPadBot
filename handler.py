@@ -17,7 +17,7 @@ import re
 import jdatetime
 from datetime import datetime
 from typing import Dict
-
+from io import BytesIO
 
 checkUserJoinedChannel = False
 
@@ -452,10 +452,9 @@ async def secondryKeyboard():
 async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask the user for info about the selected predefined choice."""
     user_id = update.effective_user.id
-    text = update.message.text.lower()
+    text = update.message.text
     context.user_data["choice"] = text
     if text == NEW_AD:
-        reply_text = SEND_IMAGE_OF_AD
         client = clients.get_clients_by_id(USER_ID.format(user_id))
         if client == None:
             await userAuth(user_id)
@@ -466,20 +465,22 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         if response.status_code == 200:
             data = response.json()
             keyboard = [[]]
+            is_empty = True
             for package in data["results"]:
                 if(package["initialized"] == False):
                     button = InlineKeyboardButton(
-                        PACKAGE_INFO.format(str(package["views"])), 
-                        callback_data = PREFIX_PURCHASE_PACKAGE + str(package["id"]),
+                        PACKAGE_INFO.format(str(package["plan_views"])), 
+                        callback_data = PREFIX_PACKAGE_TO_USE + str(package["id"]),
                     )
                     row = [button]
                     keyboard.append(row)
-
-            if len(keyboard) == 0:
+                    is_empty = False
+            if is_empty == True:
                 await update.message.reply_text(text = DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
                 return CHOOSING
             
             reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(text = REQUEST_REVIEWED,reply_markup=await secondryKeyboard())
             await context.bot.send_message(
                 chat_id=user_id, text=CHOOSE_PURCHASED_PACKAGE, reply_markup=reply_markup
             )
@@ -487,6 +488,42 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         else:
             await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
             return CHOOSING
+    
+    if text == SHOW_STATS:
+        client = clients.get_clients_by_id(USER_ID.format(user_id))
+        if client == None:
+            await userAuth(user_id)
+            client = clients.get_clients_by_id(USER_ID.format(user_id))
+        token = {"Authorization": "Token " + client["token"]}
+        getAds = AD_ADDRESS + PURCHASED_PLANS_API
+        response = requests.get(getAds, headers=token)
+        is_empty = True
+        if response.status_code == 200:
+            data = response.json()
+            for package in data["results"]:
+                if(package["initialized"] == True):
+                    if(package['image']) == None:
+                        continue
+                    responseOfImage = requests.get(package['image'])
+                    textOfAd = package['text']
+                    
+                    if package['admin_comment'] == "":
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_PENDING,""))
+                    else:
+                        if package['verified'] == True:
+                            await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,ADMIN_COMMENT))
+                        else:
+                            await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_NOT_CONFIRMED,ADMIN_COMMENT))
+                    
+                    is_empty = False
+            
+            if is_empty == True:
+                await update.message.reply_text(INIT_AD_EMPTY)
+            return CHOOSING
+        else:
+            await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
+            return CHOOSING
+                    
 
 
 # async def received_information(
@@ -552,25 +589,34 @@ async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE)
     button_data = query.data
     button_data = button_data[len(PREFIX_PACKAGE_TO_USE
     ) : len(button_data)]
-    context.user_data["adId"] = button_data
+    context.user_data["ad_id"] = button_data
     # client = clients.get_clients_by_id(USER_ID.format(user_id))
     # if client == None:
     #     await userAuth(user_id)
     #     client = clients.get_clients_by_id(USER_ID.format(user_id))
     # token = {"Authorization": "Token " + client["token"]}
     # response = requests.get(AD_ADDRESS + GET_SELECTED_AD.format(context), headers=token)
-    await update.message.reply_text(SELECTED_PACKAGE)
+    await context.bot.send_message(chat_id=user_id,text = SELECTED_PACKAGE + "\n" + SEND_IMAGE_OF_AD)
+    await context.bot.answer_callback_query(callback_query_id=query.id, text = WAITING)
     return SEND_IMAGE
 
 
 async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_id  = update.effective_chat.id
-    photo_id = context.user_data["photoId"]
+    photo_id = context.user_data["photo_id"]
+    ad_id = context.user_data["ad_id"]
+    ad_text = context.user_data["ad_text"]
     if update.message.text == CANCEL:
         await update.message.reply_text(text=CANCEL_MESSAGE)
         return await cancelOperation(update,context)
 
     else:
+        file = await context.bot.get_file(photo_id)
+        photo_url = file.file_path
+        photo_data = requests.get(photo_url).content
+
+        # Prepare the file to be sent to the API
+        files = {'image': ('photo.jpg', photo_data)}
         client = clients.get_clients_by_id(USER_ID.format(user_id))
         if client == None:
             await userAuth(user_id)
@@ -578,12 +624,14 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         
         token = {"Authorization": "Token " + client["token"]}
         # Get the file path using the getFile method
-        file_path = await context.bot.get_file(photo_id).file_path
-        # Download the photo using the file path
-        photo_url = f"https://api.telegram.org/file/bot{context.bot.token}/{file_path}"
-        photo_file = requests.get(photo_url)
-
-        response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["adId"]),headers=token,files = photo_file, data={context.user_data["ad_text"]})
+        # file_path = await context.bot.get_file(photo_id).file_path
+        # # Download the photo using the file path
+        # photo_url = f"https://api.telegram.org/file/bot{context.bot.token}/{file_path}"
+        # photo_file = requests.get(photo_url)
+        TEXT = "{}"
+        response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["ad_id"]),headers=token,files = files , data={"text": TEXT.format(ad_text)})
+        print(response.status_code)
+        print(response.json())
         if response.status_code == 200:
             await update.message.reply_text(
                 text=AD_DONE, reply_markup=await defautlKeyboardUpdate()

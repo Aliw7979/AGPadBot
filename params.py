@@ -58,6 +58,16 @@ AD_DONE = '''عملیات با موفقیت انجام شد.
 برای دیدن تبلیغ اضافه شده و همچنین وضعیت تایید آن توسط ادمین از گزینه <مشاهده آمار تبلیغات شما📊> استفاده کنید.'''
 SELECTED_PACKAGE = 'بسته مورد نظر شما انتخاب شد'
 PACKAGE_INFO = "بسته خریداری شده با تعداد بازدید {}"
+REQUEST_REVIEWED = 'پیام شما بررسی شد.'
+SHOW_STATS_BODY = '''{}
+تعداد بازدید انتخابی {}👀 عدد
+وضعیت بررسی🚨: {}
+{}'''
+AD_REVIWED = 'تایید شده توسط ادمین ✅'
+AD_NOT_CONFIRMED = 'تبلیغ شما رد شده است❌'
+AD_PENDING = '''تبلیغ شما در حال بررسی توسط ادمین است.⏳'''
+ADMIN_COMMENT = 'نظر ادمین: {}'
+INIT_AD_EMPTY = 'لیست تبلیغ‌های شما خالی است.❌'
 #Api stuff
 LEXEME_ADDRESS = "http://79.132.193.62:81/"
 AD_ADDRESS = "http://79.132.193.62:82/"
@@ -71,6 +81,7 @@ API_URL = 'http://79.132.193.62/api/telegram/'
 ACCOUNT_API = 'api/accounts/info'
 PLANS_API = "api/advertisements/plans/"
 PURCHASED_PLANS_API = "api/advertisements/"
+SEND_AD_API = "api/advertisements/{}/"
 GET_SELECTED_AD = "api/advertisements/{}/"
 PURCHASE_PACKAGES_API = "{}/direct_payment/"
 RESET_API = 'reset/'
@@ -105,4 +116,4 @@ SUPPORT_BUTTON = '''پشتیبانی☎️'''
 
 
 #conv
-CHOOSING, SEND_IMAGE, SEND_TEXT, CONFIRMATION, SELECT_PACKAGE = range(5)
+CHOOSING,SELECT_PACKAGE, SEND_IMAGE, SEND_TEXT, CONFIRMATION = range(5)

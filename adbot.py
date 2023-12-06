@@ -76,7 +76,7 @@ def main():
                     handler.cancelOperation,
                 ),
                 MessageHandler(
-                    filters.PHOTO & ~(filters.COMMAND | filters.Regex("^Done$")),
+                    filters.PHOTO,
                     handler.receivedImage,
                 ),
             ],
