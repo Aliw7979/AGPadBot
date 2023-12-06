@@ -467,19 +467,16 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             data = response.json()
             keyboard = [[]]
             for package in data["results"]:
-                button = InlineKeyboardButton(
-                    PURCHASE
-                    + str(package["views"])
-                    + VIEW
-                    + str(package["cost"])
-                    + CURRENCY,
-                    callback_data=PREFIX_PURCHASE_PACKAGE + str(package["id"]),
-                )
-                row = [button]
-                keyboard.append(row)
+                if(package["initialized"] == False):
+                    button = InlineKeyboardButton(
+                        PACKAGE_INFO.format(str(package["views"])), 
+                        callback_data = PREFIX_PURCHASE_PACKAGE + str(package["id"]),
+                    )
+                    row = [button]
+                    keyboard.append(row)
 
             if len(keyboard) == 0:
-                await update.message.reply_text(text =DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
+                await update.message.reply_text(text = DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
                 return CHOOSING
             
             reply_markup = InlineKeyboardMarkup(keyboard)
