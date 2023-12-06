@@ -180,9 +180,6 @@ async def getMyPackages(update: Update, context):
                 is_empty = False
         if is_empty == True:
             await update.message.reply_text(text = DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
-            return CHOOSING
-        
-    return CHOOSING
 
 async def getPackages(update, context):
     user_id = update.effective_user.id
@@ -344,10 +341,6 @@ async def help(update, context):
     )
 
 
-async def restart(update, context):
-    logger.info("User {0} ended the chat.".format(update.effective_chat))
-    return CHOOSING
-
 
 async def end(update, context):
     logger.info("User {0} chat timeouted.".format(update.effective_chat))
@@ -400,7 +393,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 chat_id=user_id, text=ENROLMENT, reply_markup=reply_markup
             )
             return
-    return CHOOSING
 
 
 async def secondryKeyboard():
@@ -439,7 +431,7 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                     is_empty = False
             if is_empty == True:
                 await update.message.reply_text(text = DONT_HAVE_PACKAGE,reply_markup=await defautlKeyboardUpdate())
-                return CHOOSING
+                return ConversationHandler.END
             
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(text = REQUEST_REVIEWED,reply_markup=await secondryKeyboard())
@@ -449,7 +441,7 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             return SELECT_PACKAGE
         else:
             await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
-            return CHOOSING
+            return ConversationHandler.END
     
     if text == SHOW_STATS:
         client = clients.get_clients_by_id(USER_ID.format(user_id))
@@ -481,10 +473,8 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             
             if is_empty == True:
                 await update.message.reply_text(INIT_AD_EMPTY)
-            return CHOOSING
         else:
             await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
-            return CHOOSING
                     
 
 
@@ -598,19 +588,19 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await update.message.reply_text(
                 text=AD_DONE, reply_markup=await defautlKeyboardUpdate()
             )
-            return CHOOSING
+            return ConversationHandler.END
         else:
             await update.message.reply_text(
                 text=SERVICEDOWN, reply_markup=await defautlKeyboardUpdate()
             )
-            return CHOOSING
+            return ConversationHandler.END
             
 async def done(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    return CHOOSING
+    return ConversationHandler.END
 
 
 async def cancelOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         text=CANCEL_MESSAGE, reply_markup=await defautlKeyboardUpdate()
     )
-    return CHOOSING
+    return ConversationHandler.END

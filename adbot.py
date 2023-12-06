@@ -55,12 +55,8 @@ def main():
 
     # Add conversation handler with the states CHOOSING, CONFIRMATION and SEND_IMAGE
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", handler.start)],
+        entry_points=[MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice)],
         states={
-            CHOOSING: [
-                MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice),
-                MessageHandler(filters.Regex(r"" + SHOW_STATS), handler.adChoice),
-            ],
             SELECT_PACKAGE: [
                 CallbackQueryHandler(
                     handler.choosePackageToUse, pattern=f"^{PREFIX_PACKAGE_TO_USE}"
@@ -100,6 +96,8 @@ def main():
         fallbacks=[MessageHandler(filters.Regex("^Done$"), handler.done)],
     )
     application.add_handler(conv_handler)
+    application.add_handler(CommandHandler("start", handler.start))
+    application.add_handler(MessageHandler(filters.Regex(r"" + SHOW_STATS), handler.adChoice))
     application.add_handler(MessageHandler(filters.Regex(r'' + BUY_PACKAGES), handler.getPackages))
     application.add_handler(MessageHandler(filters.Regex(r'' + SHOW_PACKAGES ), handler.getMyPackages),)
     application.add_handler(CallbackQueryHandler(handler.purchasePlan, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
