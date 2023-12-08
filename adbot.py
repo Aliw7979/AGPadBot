@@ -48,12 +48,10 @@ def main():
         if e.errno != errno.EEXIST:
             raise e
     """Run the bot."""
-    # Create the Application and pass it your bot's token.
     application = (
         Application.builder().token(config.BOT_TOKEN).build()
     )
 
-    # Add conversation handler with the states CHOOSING, CONFIRMATION and SEND_IMAGE
     conv_handler = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(r"" + NEW_AD), handler.adChoice)],
         states={
@@ -102,7 +100,6 @@ def main():
     application.add_handler(MessageHandler(filters.Regex(r'' + SHOW_PACKAGES ), handler.getMyPackages),)
     application.add_handler(CallbackQueryHandler(handler.purchasePlan, pattern=f'^{PREFIX_PURCHASE_PACKAGE}'))
     application.add_handler(MessageHandler(filters.Regex(r'' + SUPPORT_BUTTON), handler.support))
-    # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
