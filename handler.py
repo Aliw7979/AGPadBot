@@ -477,28 +477,6 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
                     
 
-
-# async def received_information(
-#     update: Update, context: ContextTypes.DEFAULT_TYPE
-# ) -> int:
-#     """Store info provided by user and ask for the next category."""
-#     text = update.message.text
-#     choice = context.user_data["choice"]
-#     if choice == CANCEL:
-#         return
-#     context.user_data[choice] = text.lower()
-#     del context.user_data["choice"]
-
-#     await update.message.reply_text(
-#         "Neat! Just so you know, this is what you already told me:"
-#         f"{facts_to_str(context.user_data)}"
-#         "You can tell me more, or change your opinion on something.",
-#         reply_markup=await defautlKeyboardUpdate(),
-#     )
-
-#     return CHOOSING
-
-
 async def receivedImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # Get the photo file ID
     photoId = update.message.photo[-1].file_id
@@ -531,8 +509,6 @@ async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     except Exception as e:
         print(e)
         return await cancelOperation(update, context)
-
-
 
 
 async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE):
