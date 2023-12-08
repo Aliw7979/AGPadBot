@@ -240,8 +240,6 @@ async def purchasePlan(update, context):
                 + " "
                 + CURRENCY,
             )
-    elif response.status_code == 409:
-        await context.bot.send_message(chat_id=user_id, text=WARN_ACTIVE_PACKAGE)
     else:
         await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
 
