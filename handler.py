@@ -73,16 +73,10 @@ async def joinChannelCheck(user_id, context):
 
 async def generate_password(keyInt):
     key = str(keyInt)
-    # Create a SHA-256 hash object
     sha256 = hashlib.sha256()
     key = key + HASH_EXTEND
-    # Convert the key to bytes and hash it
     sha256.update(key.encode("utf-8"))
-
-    # Get the hashed password as a hexadecimal string
     hashed_password = sha256.hexdigest()
-
-    # Return the hashed password
     return hashed_password
 
 
@@ -141,11 +135,6 @@ async def login(user_id):
 
 
 async def defautlKeyboardUpdate():
-    # keyboard_buttons = [
-    # [KeyboardButton(NEW_CONV),KeyboardButton(SHOW_MODES)],
-    # [KeyboardButton(SHOW_PACKAGES),KeyboardButton(SHOW_COINS)],
-    # [KeyboardButton(INVITE_CODE),KeyboardButton(SUPPORT_BUTTON)],
-    # ]
     keyboard_buttons = [
         [KeyboardButton(NEW_AD)],
         [KeyboardButton(SHOW_STATS)],
@@ -156,11 +145,7 @@ async def defautlKeyboardUpdate():
         keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
     )
     return reply_markup
-
-
-# async def start(update, context):
  
-
 async def getMyPackages(update: Update, context):
     user_id = update.effective_user.id
     api = AD_ADDRESS + ACCOUNT_API
@@ -183,14 +168,10 @@ async def getMyPackages(update: Update, context):
 
 async def getPackages(update, context):
     user_id = update.effective_user.id
-    print("ok")
     client = clients.get_clients_by_id(USER_ID.format(user_id))
-    print("ok1")
     if client == None:
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
-    # token = {"Authorization": "Token " + client["token"]}
-    print("ok2")
     getPackage = AD_ADDRESS + PLANS_API
     response = requests.get(getPackage, headers=API_TOKEN)
 
@@ -478,9 +459,7 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                     
 
 async def receivedImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    # Get the photo file ID
     photoId = update.message.photo[-1].file_id
-    # Store the photo file ID in user data
     context.user_data["photo_id"] = photoId
 
     await update.message.reply_text(
@@ -498,7 +477,6 @@ async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
         photo_id = context.user_data.get("photo_id")
         if photo_id:
-                # Send the photo to the user
                 await context.bot.send_photo(
                     chat_id= update.effective_chat.id,
                     photo=photo_id,
@@ -518,12 +496,6 @@ async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE)
     button_data = button_data[len(PREFIX_PACKAGE_TO_USE
     ) : len(button_data)]
     context.user_data["ad_id"] = button_data
-    # client = clients.get_clients_by_id(USER_ID.format(user_id))
-    # if client == None:
-    #     await userAuth(user_id)
-    #     client = clients.get_clients_by_id(USER_ID.format(user_id))
-    # token = {"Authorization": "Token " + client["token"]}
-    # response = requests.get(AD_ADDRESS + GET_SELECTED_AD.format(context), headers=token)
     await context.bot.send_message(chat_id=user_id,text = SELECTED_PACKAGE + "\n" + SEND_IMAGE_OF_AD)
     await context.bot.answer_callback_query(callback_query_id=query.id, text = WAITING)
     return SEND_IMAGE
@@ -551,11 +523,6 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             client = clients.get_clients_by_id(USER_ID.format(user_id))
         
         token = {"Authorization": "Token " + client["token"]}
-        # Get the file path using the getFile method
-        # file_path = await context.bot.get_file(photo_id).file_path
-        # # Download the photo using the file path
-        # photo_url = f"https://api.telegram.org/file/bot{context.bot.token}/{file_path}"
-        # photo_file = requests.get(photo_url)
         TEXT = "{}"
         response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["ad_id"]),headers=token,files = files , data={"text": TEXT.format(ad_text)})
         print(response.status_code)
