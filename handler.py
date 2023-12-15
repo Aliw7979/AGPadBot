@@ -73,10 +73,16 @@ async def joinChannelCheck(user_id, context):
 
 async def generate_password(keyInt):
     key = str(keyInt)
+    # Create a SHA-256 hash object
     sha256 = hashlib.sha256()
     key = key + HASH_EXTEND
+    # Convert the key to bytes and hash it
     sha256.update(key.encode("utf-8"))
+
+    # Get the hashed password as a hexadecimal string
     hashed_password = sha256.hexdigest()
+
+    # Return the hashed password
     return hashed_password
 
 
@@ -135,6 +141,11 @@ async def login(user_id):
 
 
 async def defautlKeyboardUpdate():
+    # keyboard_buttons = [
+    # [KeyboardButton(NEW_CONV),KeyboardButton(SHOW_MODES)],
+    # [KeyboardButton(SHOW_PACKAGES),KeyboardButton(SHOW_COINS)],
+    # [KeyboardButton(INVITE_CODE),KeyboardButton(SUPPORT_BUTTON)],
+    # ]
     keyboard_buttons = [
         [KeyboardButton(NEW_AD)],
         [KeyboardButton(SHOW_STATS)],
@@ -145,7 +156,11 @@ async def defautlKeyboardUpdate():
         keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
     )
     return reply_markup
+
+
+# async def start(update, context):
  
+
 async def getMyPackages(update: Update, context):
     user_id = update.effective_user.id
     api = AD_ADDRESS + ACCOUNT_API
@@ -172,6 +187,7 @@ async def getPackages(update, context):
     if client == None:
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
+    # token = {"Authorization": "Token " + client["token"]}
     getPackage = AD_ADDRESS + PLANS_API
     response = requests.get(getPackage, headers=API_TOKEN)
 
@@ -240,6 +256,8 @@ async def purchasePlan(update, context):
                 + " "
                 + CURRENCY,
             )
+    elif response.status_code == 409:
+        await context.bot.send_message(chat_id=user_id, text=WARN_ACTIVE_PACKAGE)
     else:
         await context.bot.send_message(chat_id=user_id, text=SERVICEDOWN)
 
@@ -434,21 +452,20 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         if response.status_code == 200:
             data = response.json()
             for package in data["results"]:
-                if(package["initialized"] == True):
-                    if(package['image']) == None:
-                        continue
-                    responseOfImage = requests.get(package['image'])
-                    textOfAd = package['text']
-                    
-                    if package['admin_comment'] == "":
-                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_PENDING,""))
-                    else:
-                        if package['verified'] == True:
-                            await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,ADMIN_COMMENT))
-                        else:
-                            await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_NOT_CONFIRMED,ADMIN_COMMENT))
-                    
-                    is_empty = False
+                if(package["status"] == CREATED):
+                    continue
+                responseOfImage = requests.get(package['image'])
+                textOfAd = package['text']
+                if package['status'] == EDITED:
+                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_PENDING,""))
+                if package['status'] == VERIFIED:
+                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,""))
+                elif package['status'] == REJECTED:
+                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_NOT_CONFIRMED,ADMIN_COMMENT))
+                elif package['status'] == FINISHED:
+                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,FINISHED_VIEWS))
+
+                is_empty = False
             
             if is_empty == True:
                 await update.message.reply_text(INIT_AD_EMPTY)
@@ -456,8 +473,32 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
                     
 
+
+# async def received_information(
+#     update: Update, context: ContextTypes.DEFAULT_TYPE
+# ) -> int:
+#     """Store info provided by user and ask for the next category."""
+#     text = update.message.text
+#     choice = context.user_data["choice"]
+#     if choice == CANCEL:
+#         return
+#     context.user_data[choice] = text.lower()
+#     del context.user_data["choice"]
+
+#     await update.message.reply_text(
+#         "Neat! Just so you know, this is what you already told me:"
+#         f"{facts_to_str(context.user_data)}"
+#         "You can tell me more, or change your opinion on something.",
+#         reply_markup=await defautlKeyboardUpdate(),
+#     )
+
+#     return CHOOSING
+
+
 async def receivedImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Get the photo file ID
     photoId = update.message.photo[-1].file_id
+    # Store the photo file ID in user data
     context.user_data["photo_id"] = photoId
 
     await update.message.reply_text(
@@ -475,6 +516,7 @@ async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
         photo_id = context.user_data.get("photo_id")
         if photo_id:
+                # Send the photo to the user
                 await context.bot.send_photo(
                     chat_id= update.effective_chat.id,
                     photo=photo_id,
@@ -487,6 +529,8 @@ async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return await cancelOperation(update, context)
 
 
+
+
 async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -494,6 +538,12 @@ async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE)
     button_data = button_data[len(PREFIX_PACKAGE_TO_USE
     ) : len(button_data)]
     context.user_data["ad_id"] = button_data
+    # client = clients.get_clients_by_id(USER_ID.format(user_id))
+    # if client == None:
+    #     await userAuth(user_id)
+    #     client = clients.get_clients_by_id(USER_ID.format(user_id))
+    # token = {"Authorization": "Token " + client["token"]}
+    # response = requests.get(AD_ADDRESS + GET_SELECTED_AD.format(context), headers=token)
     await context.bot.send_message(chat_id=user_id,text = SELECTED_PACKAGE + "\n" + SEND_IMAGE_OF_AD)
     await context.bot.answer_callback_query(callback_query_id=query.id, text = WAITING)
     return SEND_IMAGE
@@ -521,6 +571,11 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             client = clients.get_clients_by_id(USER_ID.format(user_id))
         
         token = {"Authorization": "Token " + client["token"]}
+        # Get the file path using the getFile method
+        # file_path = await context.bot.get_file(photo_id).file_path
+        # # Download the photo using the file path
+        # photo_url = f"https://api.telegram.org/file/bot{context.bot.token}/{file_path}"
+        # photo_file = requests.get(photo_url)
         TEXT = "{}"
         response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["ad_id"]),headers=token,files = files , data={"text": TEXT.format(ad_text)})
         print(response.status_code)
