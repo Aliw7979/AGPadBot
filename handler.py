@@ -99,7 +99,6 @@ async def userAuth(user_id):
         print(userAPIKey)
     else:
         response = await login(user_id)
-        print(response.json())
         data = response.json()
         if clients.get_clients_by_id(user_id) != None:
             clients.update_client(user_id, data["user"]["token"])
@@ -175,7 +174,7 @@ async def getMyPackages(update: Update, context):
         data = response.json()
         is_empty = True
         for package in data["results"]:
-            if(package["initialized"] == False):
+            if(package["status"] == CREATED):
                 await update.message.reply_text(PACKAGE_INFO.format(str(package["plan_views"])))
                 is_empty = False
         if is_empty == True:
@@ -228,7 +227,6 @@ async def purchasePlan(update, context):
         await userAuth(user_id)
         client = clients.get_clients_by_id(USER_ID.format(user_id))
     token = {"Authorization": "Token " + client["token"]}
-    print(token)
     response = requests.get(api, headers=token)
 
     if checkUserJoinedChannel == True:
@@ -354,7 +352,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             USER_ID.format(user_id), data["user"]["token"]
         )
         userAPIKey = clients.get_all_clients()
-        print(userAPIKey)
         await context.bot.send_message(
             chat_id=user_id, text=WELCOME, reply_markup=await defautlKeyboardUpdate()
         )
@@ -399,6 +396,39 @@ async def secondryKeyboard():
     )
     return reply_markup
 
+async def extractButtons(package):
+    keyboard = [[]]
+    keyboardIsEmpty = True
+    if(package["button1text"] != None):
+        keyboardIsEmpty = False
+        button = InlineKeyboardButton(
+                text = package["button1text"],
+                url=package["button1link"]
+            )
+        row = [button]
+        keyboard.append(row)
+    if(package["button2text"] != None):
+        keyboardIsEmpty = False
+        button = InlineKeyboardButton(
+                text = package["button1text"],
+                url=package["button1link"]
+            )
+        row = [button]
+        keyboard.append(row)
+    if(package["button3text"] != None):
+        keyboardIsEmpty = False
+        button = InlineKeyboardButton(
+                text = package["button1text"],
+                url=package["button1link"]
+            )
+        row = [button]
+        keyboard.append(row)
+    print(keyboard)
+    reply_markup_pre = InlineKeyboardMarkup(keyboard)
+    if(keyboardIsEmpty == True):
+        return False, reply_markup_pre
+    else:
+        return True, reply_markup_pre
 
 async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask the user for info about the selected predefined choice."""
@@ -418,7 +448,7 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             keyboard = [[]]
             is_empty = True
             for package in data["results"]:
-                if(package["initialized"] == False):
+                if(package["status"] == CREATED):
                     button = InlineKeyboardButton(
                         PACKAGE_INFO.format(str(package["plan_views"])), 
                         callback_data = PREFIX_PACKAGE_TO_USE + str(package["id"]),
@@ -446,7 +476,7 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             await userAuth(user_id)
             client = clients.get_clients_by_id(USER_ID.format(user_id))
         token = {"Authorization": "Token " + client["token"]}
-        getAds = AD_ADDRESS + PURCHASED_PLANS_API
+        getAds = AD_ADDRESS + PURCHASED_PLANS_API + "?limit=100"
         response = requests.get(getAds, headers=token)
         is_empty = True
         if response.status_code == 200:
@@ -457,18 +487,31 @@ async def adChoice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 responseOfImage = requests.get(package['image'])
                 textOfAd = package['text']
                 if package['status'] == EDITED:
-                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_PENDING,""))
+                    hasKeyboard,keyboardButtons = await extractButtons(package)
+                    if(hasKeyboard == False):
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_PENDING,""))
+                    else:
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_PENDING,""),reply_markup=keyboardButtons)
                 if package['status'] == VERIFIED:
-                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,""))
+                    hasKeyboard,keyboardButtons = await extractButtons(package)
+                    if(hasKeyboard == False):
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,""))
+                    else:
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,""),reply_markup=keyboardButtons)
                 elif package['status'] == REJECTED:
-                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_NOT_CONFIRMED,ADMIN_COMMENT))
-                elif package['status'] == FINISHED:
-                    await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,FINISHED_VIEWS))
+                    hasKeyboard,keyboardButtons = await extractButtons(package)
+                    if(hasKeyboard == False):
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_NOT_CONFIRMED,ADMIN_COMMENT))
+                    else:
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_NOT_CONFIRMED,ADMIN_COMMENT),reply_markup=keyboardButtons)
 
-                is_empty = False
-            
-            if is_empty == True:
-                await update.message.reply_text(INIT_AD_EMPTY)
+                elif package['status'] == FINISHED:
+                    hasKeyboard,keyboardButtons = await extractButtons(package)
+                    if(hasKeyboard == False):
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,FINISHED_VIEWS))
+                    else:
+                        await update.message.reply_photo(BytesIO(responseOfImage.content), caption = SHOW_STATS_BODY.format(textOfAd,str(package["plan_views"]),AD_REVIWED,FINISHED_VIEWS),reply_markup=keyboardButtons)
+
         else:
             await update.message.reply_text(SERVICEDOWN, reply_markup=await defautlKeyboardUpdate())
                     
@@ -510,26 +553,148 @@ async def receivedImage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 async def receivedText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         context.user_data["ad_text"] = update.message.text
-        keyboard_buttons = [[KeyboardButton(CONFIRM)], [KeyboardButton(CANCEL)]]
+        keyboard_buttons = [[KeyboardButton(YES)], [KeyboardButton(NO)]]
         reply_markup = ReplyKeyboardMarkup(
             keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
         )
-        photo_id = context.user_data.get("photo_id")
-        if photo_id:
-                # Send the photo to the user
-                await context.bot.send_photo(
-                    chat_id= update.effective_chat.id,
-                    photo=photo_id,
-                    caption=context.user_data["ad_text"],
-                )
-        await update.message.reply_text(text=AD_CONFIRMATION, reply_markup=reply_markup)
-        return CONFIRMATION
+        await update.message.reply_text(text=WANT_ADD_BUTTON, reply_markup=reply_markup)
+        #init buton and link info
+        context.user_data['button1text'] = ''
+        context.user_data['button2text'] = ''
+        context.user_data['button3text'] = ''
+        context.user_data['button1link'] = ''
+        context.user_data['button2link'] = ''
+        context.user_data['button3link'] = ''
+        return BUTTON_CONFIRM
     except Exception as e:
         print(e)
         return await cancelOperation(update, context)
 
+async def addButtonConfirmation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if(update.message.text == YES):
+        keyboard_buttons = [[KeyboardButton(CANCEL)]]
+        reply_markup = ReplyKeyboardMarkup(
+            keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+        )
+        await update.message.reply_text(text = FILL_BUTTON_TEXT,reply_markup=reply_markup)
+        return BUTTON_TEXT
+    elif(update.message.text == NO):
+        await adPreview(update, context)
+        return CONFIRMATION
+    else:
+        return BUTTON_CONFIRM
+    
+async def cancelButton(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await adPreview(update, context)
+    return CONFIRMATION
 
+async def setButtonText(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    
+    if context.user_data['button1text'] != '' and context.user_data['button2text'] != '' and context.user_data['button3text'] != '':
+        await adPreview(update, context)
+        return CONFIRMATION
+    else:
+        if context.user_data['button1text'] == '':
+            context.user_data['button1text'] = update.message.text
+            await update.message.reply_text(text = FILL_BUTTON_LINK)
+            return BUTTON_LINK
+        if context.user_data['button2text'] == '':
+            context.user_data['button2text'] = update.message.text
+            await update.message.reply_text(text = FILL_BUTTON_LINK)
+            return BUTTON_LINK    
+        if context.user_data['button3text'] == '':
+            context.user_data['button3text'] = update.message.text
+            await update.message.reply_text(text = FILL_BUTTON_LINK)
+            return BUTTON_LINK
+    
+async def setButtonLink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if context.user_data['button1text'] != '' and context.user_data['button2text'] != '' and context.user_data['button3link'] != '':
+        await adPreview(update, context)
+        return CONFIRMATION
+    else:
+        if update.message.text.startswith('@'):
+            await update.message.reply_text(text = CANT_USE_ATSIGN)
+            await update.message.reply_text(text = FILL_BUTTON_LINK)
+            return BUTTON_LINK
+        if context.user_data['button1text'] != '' and context.user_data['button1link'] == '':
+            context.user_data['button1link'] = update.message.text
+            await update.message.reply_text(text = BUTTON_ADDED)
+            keyboard_buttons = [[KeyboardButton(YES)], [KeyboardButton(NO)]]
+            reply_markup = ReplyKeyboardMarkup(
+            keyboard_buttons, resize_keyboard=True, one_time_keyboard=True
+            )
+            await update.message.reply_text(text=NEXT_BUTTON_CONFIRMATION, reply_markup=reply_markup)
+            return BUTTON_CONFIRM
+        elif context.user_data['button2text'] != '' and context.user_data['button2link'] == '':
+            context.user_data['button2link'] = update.message.text
+            await update.message.reply_text(text = BUTTON_ADDED)
+            keyboard_buttons = [[KeyboardButton(YES)], [KeyboardButton(NO)]]
+            reply_markup = ReplyKeyboardMarkup(
+            keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+            )
+            await update.message.reply_text(text=NEXT_BUTTON_CONFIRMATION, reply_markup=reply_markup)
+            return BUTTON_CONFIRM
+        elif context.user_data['button3text'] != '' and context.user_data['button3link'] == '':
+            context.user_data['button3link'] = update.message.text
+            await update.message.reply_text(text = BUTTONS_ADDED)
+            await adPreview(update, context)
+            return CONFIRMATION
+    
+async def adPreview(update:Update,context: ContextTypes.DEFAULT_TYPE):
+    data = {}
+    keyboard = [[]]
+    keyboardIsEmpty = True
+    if(context.user_data["button1text"] !=''):
+        button = InlineKeyboardButton(
+                context.user_data["button1text"],
+                url=context.user_data["button1link"]
+            )
+        row = [button]
+        keyboard.append(row)
+        keyboardIsEmpty = False
 
+    if(context.user_data["button2text"] !=''):
+        button = InlineKeyboardButton(
+                context.user_data["button2text"],
+                url=context.user_data["button2link"]
+            )
+        row = [button]
+        keyboard.append(row)
+    if(context.user_data["button3text"] !=''):
+        button = InlineKeyboardButton(
+                context.user_data["button3text"],
+                url=context.user_data["button3link"]
+            )
+        row = [button]
+        keyboard.append(row)
+    
+    reply_markup_pre = InlineKeyboardMarkup(keyboard)
+    keyboard_buttons = [[KeyboardButton(CONFIRM)], [KeyboardButton(CANCEL)]]
+    reply_markup = ReplyKeyboardMarkup(
+        keyboard_buttons, resize_keyboard=True, one_time_keyboard=False
+    )
+    photo_id = context.user_data.get("photo_id")
+    if photo_id and keyboardIsEmpty == False:
+            # Send the photo to the user
+            await context.bot.send_photo(
+                chat_id= update.effective_chat.id,
+                photo=photo_id,
+                caption=context.user_data["ad_text"],reply_markup=reply_markup_pre
+            )
+    elif photo_id and keyboardIsEmpty == True:
+            # Send the photo to the user
+            await context.bot.send_photo(
+                chat_id= update.effective_chat.id,
+                photo=photo_id,
+                caption=context.user_data["ad_text"]
+            )
+    else:
+        # Send the photo to the user
+            await context.bot.send_message(
+                chat_id= update.effective_chat.id,
+                text=context.user_data["ad_text"]
+            )
+    await update.message.reply_text(text=AD_CONFIRMATION, reply_markup=reply_markup)
 
 async def choosePackageToUse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -563,7 +728,20 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         photo_url = file.file_path
         photo_data = requests.get(photo_url).content
 
+        data = {}
+        TEXT = "{}"
+        data["text"] = TEXT.format(ad_text)
+        if(context.user_data["button1text"] !=''):
+            data["button1text"] = context.user_data["button1text"]
+            data["button1link"] = context.user_data["button1link"]
+        if(context.user_data["button2text"] !=''):
+            data["button2text"] = context.user_data["button2text"]
+            data["button2link"] = context.user_data["button2link"]
+        if(context.user_data["button3text"] !=''):
+            data["button3text"] = context.user_data["button3text"]
+            data["button3link"] = context.user_data["button3link"]
         # Prepare the file to be sent to the API
+        print(data)
         files = {'image': ('photo.jpg', photo_data)}
         client = clients.get_clients_by_id(USER_ID.format(user_id))
         if client == None:
@@ -577,9 +755,7 @@ async def confirmOperation(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         # photo_url = f"https://api.telegram.org/file/bot{context.bot.token}/{file_path}"
         # photo_file = requests.get(photo_url)
         TEXT = "{}"
-        response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["ad_id"]),headers=token,files = files , data={"text": TEXT.format(ad_text)})
-        print(response.status_code)
-        print(response.json())
+        response = requests.put(AD_ADDRESS + GET_SELECTED_AD.format(context.user_data["ad_id"]),headers=token,files = files , data=data)
         if response.status_code == 200:
             await update.message.reply_text(
                 text=AD_DONE, reply_markup=await defautlKeyboardUpdate()

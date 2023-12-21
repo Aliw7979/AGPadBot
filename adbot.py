@@ -80,6 +80,33 @@ def main():
                     handler.receivedText,
                 )
             ],
+            BUTTON_CONFIRM: [
+                MessageHandler(
+                    filters.TEXT,
+                    handler.addButtonConfirmation,
+                )
+            ],
+            BUTTON_TEXT: [
+                MessageHandler(
+                    filters.TEXT,
+                    handler.setButtonText,
+                ),  
+                MessageHandler(
+                    filters.Regex(r"" + CANCEL),
+                    handler.cancelButton,
+                ),
+            ],
+            BUTTON_LINK: [
+                MessageHandler(
+                    filters.TEXT,
+                    handler.setButtonLink,
+                ),
+                MessageHandler(
+                    filters.Regex(r"" + CANCEL),
+                    handler.cancelButton,
+                ),
+            ],
+            
             CONFIRMATION: [
                 MessageHandler(
                     filters.Regex(r"" + CANCEL),
